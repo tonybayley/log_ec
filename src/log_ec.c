@@ -111,7 +111,6 @@ static void log_print( tLog_event* ev )
              ev->time, level_strings[ev->level], ev->file, ev->line );
 #endif
     vprintf(ev->fmt, ev->ap);
-    printf("\n");
 }
 
 static void lock( void )
