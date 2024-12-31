@@ -1,4 +1,10 @@
-/*
+/**
+ * ****************************************************************************
+ * @file   : log_ec.c
+ * @brief  : Logging library for embedded C
+ * ****************************************************************************
+ *
+ * Copyright (c) 2025 Tony Bayley
  * Copyright (c) 2020 rxi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,9 +26,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "log.h"
+#include "log_ec.h"
 
-#define MAX_CALLBACKS 32
+#define MAX_CALLBACKS 2
 
 typedef struct {
   log_LogFn fn;
