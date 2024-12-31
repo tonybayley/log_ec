@@ -63,9 +63,6 @@ static tLogConfig logConfig = {
     .timestampFn = NULL,
     .level = LOG_TRACE,
     .quiet = false,
-#if LOG_USE_CALLBACKS
-    .callbacks = { NULL }
-#endif
 };
 
 static const char* level_strings[] = {
