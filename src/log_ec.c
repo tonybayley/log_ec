@@ -59,7 +59,6 @@ typedef struct {
 /* Private variable definitions ---------------------------------------------*/
 
 static tLogConfig logConfig = {
-    .udata = NULL,
     .lockFn = NULL,
     .timestampFn = NULL,
     .level = LOG_TRACE,
