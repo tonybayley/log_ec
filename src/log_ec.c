@@ -28,147 +28,185 @@
 
 #include "log_ec.h"
 
-#define MAX_CALLBACKS 2
+/* Private macro definitions ------------------------------------------------*/
+
+#ifndef LOG_USE_COLOR
+#define LOG_USE_COLOR 0  /* Default: monochrom log printing */
+#endif
+
+/* Private type definitions -------------------------------------------------*/
+
+#if LOG_USE_CALLBACKS
+typedef struct {
+    tLog_callbackFn cbFn;  //!< Callback function
+    void* cbData;          //!< User data associated with callback function
+    int cbLogLevel;        //!< Minimum logging level at which the callback is invoked
+} tCallback;
+#endif
 
 typedef struct {
-  log_LogFn fn;
-  void *udata;
-  int level;
-} Callback;
-
-static struct {
-  void *udata;
-  log_LockFn lock;
-  int level;
-  bool quiet;
-  Callback callbacks[MAX_CALLBACKS];
-} L;
+    void* lockData;                          //!< Application-specific data object required by lock function
+    tLog_lockFn lockFn;                      //!< Lock function
+    tLog_timestampFn timestampFn;            //!< Timestamp function
+    int level;                               //!< Currently set logging level
+    bool quiet;                              //!< Flag to suppress printing of log messages to the console
+#if LOG_USE_CALLBACKS
+    tCallback callbacks[LOG_MAX_CALLBACKS];  //!< Array of logging callback functions
+#endif
+} tLogConfig;
 
 
-static const char *level_strings[] = {
+/* Private variable definitions ---------------------------------------------*/
+
+static tLogConfig logConfig = {
+    .udata = NULL,
+    .lockFn = NULL,
+    .timestampFn = NULL,
+    .level = LOG_TRACE,
+    .quiet = false,
+#if LOG_USE_CALLBACKS
+    .callbacks = { NULL }
+#endif
+};
+
+static const char* level_strings[] = {
   "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
 };
 
-#ifdef LOG_USE_COLOR
+#if LOG_USE_COLOR
 static const char *level_colors[] = {
   "\x1b[94m", "\x1b[36m", "\x1b[32m", "\x1b[33m", "\x1b[31m", "\x1b[35m"
 };
 #endif
 
 
-static void stdout_callback(log_Event *ev) {
-  char buf[16];
-  buf[strftime(buf, sizeof(buf), "%H:%M:%S", ev->time)] = '\0';
-#ifdef LOG_USE_COLOR
-  fprintf(
-    ev->udata, "%s %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
-    buf, level_colors[ev->level], level_strings[ev->level],
-    ev->file, ev->line);
+/* Private function declarations --------------------------------------------*/
+
+static uint32_t getTimestamp( void );
+static void log_print( tLog_event* ev );
+static void lock( void );
+static void unlock( void );
+
+
+/* Private function definitions ---------------------------------------------*/
+
+/**
+ * @brief Get timestamp value.
+ * 
+ * @return Timestamp, as an unsigned integer value (uint32_t).
+ */
+static uint32_t getTimestamp( void )
+{
+    return ( NULL != logConfig.timestampFn ) ? logConfig.timestampFn() : 0U;
+}
+
+/**
+ * @brief Write log event data to the console.
+ * 
+ * @param ev Log event data.
+ */
+static void log_print( tLog_event* ev )
+{
+#if LOG_USE_COLOR
+    printf( "%10lu %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+            ev->time, level_colors[ev->level], level_strings[ev->level], ev->file, ev->line );
 #else
-  fprintf(
-    ev->udata, "%s %-5s %s:%d: ",
-    buf, level_strings[ev->level], ev->file, ev->line);
+    printf( "%8lu %-5s %s:%d: ",
+             ev->time, level_strings[ev->level], ev->file, ev->line );
 #endif
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\n");
-  fflush(ev->udata);
+    vprintf(ev->fmt, ev->ap);
+    printf("\n");
 }
 
-
-static void file_callback(log_Event *ev) {
-  char buf[64];
-  buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
-  fprintf(
-    ev->udata, "%s %-5s %s:%d: ",
-    buf, level_strings[ev->level], ev->file, ev->line);
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\n");
-  fflush(ev->udata);
-}
-
-
-static void lock(void)   {
-  if (L.lock) { L.lock(true, L.udata); }
-}
-
-
-static void unlock(void) {
-  if (L.lock) { L.lock(false, L.udata); }
-}
-
-
-const char* log_level_string(int level) {
-  return level_strings[level];
-}
-
-
-void log_set_lock(log_LockFn fn, void *udata) {
-  L.lock = fn;
-  L.udata = udata;
-}
-
-
-void log_set_level(int level) {
-  L.level = level;
-}
-
-
-void log_set_quiet(bool enable) {
-  L.quiet = enable;
-}
-
-
-int log_add_callback(log_LogFn fn, void *udata, int level) {
-  for (int i = 0; i < MAX_CALLBACKS; i++) {
-    if (!L.callbacks[i].fn) {
-      L.callbacks[i] = (Callback) { fn, udata, level };
-      return 0;
+static void lock( void )
+{
+    if( NULL != logConfig.lockFn )
+    {
+        logConfig.lockFn( true, logConfig.lockData );
     }
-  }
-  return -1;
 }
 
-
-int log_add_fp(FILE *fp, int level) {
-  return log_add_callback(file_callback, fp, level);
-}
-
-
-static void init_event(log_Event *ev, void *udata) {
-  if (!ev->time) {
-    time_t t = time(NULL);
-    ev->time = localtime(&t);
-  }
-  ev->udata = udata;
-}
-
-
-void log_log(int level, const char *file, int line, const char *fmt, ...) {
-  log_Event ev = {
-    .fmt   = fmt,
-    .file  = file,
-    .line  = line,
-    .level = level,
-  };
-
-  lock();
-
-  if (!L.quiet && level >= L.level) {
-    init_event(&ev, stderr);
-    va_start(ev.ap, fmt);
-    stdout_callback(&ev);
-    va_end(ev.ap);
-  }
-
-  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
-    Callback *cb = &L.callbacks[i];
-    if (level >= cb->level) {
-      init_event(&ev, cb->udata);
-      va_start(ev.ap, fmt);
-      cb->fn(&ev);
-      va_end(ev.ap);
+static void unlock( void )
+{
+    if( NULL != logConfig.lockFn )
+    {
+        logConfig.lockFn( false, logConfig.lockData );
     }
-  }
+}
 
-  unlock();
+
+/* Public function definitions ----------------------------------------------*/
+
+void log_set_lock_func( tLog_lockFn lockFn, void* lockData )
+{
+    logConfig.lockFn = lockFn;
+    logConfig.lockData = lockData;
+}
+
+void log_set_timestamp_func( tLog_timestampFn timestampFn )
+{
+    logConfig.timestampFn = timestampFn;
+}
+
+void log_set_level( int level )
+{
+    logConfig.level = level;
+}
+
+void log_set_quiet( bool enable )
+{
+    logConfig.quiet = enable;
+}
+
+#if LOG_USE_CALLBACKS
+int log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+{
+    int result = -1;  // failure
+    for( size_t i = 0; i < LOG_MAX_CALLBACKS; i++ )
+    {
+        if( ( result != 0 ) && ( NULL == logConfig.callbacks[i].cbFn ) )
+        {
+            logConfig.callbacks[i] = (tCallback) { cbFn, cbData, cbLogLevel };
+            result = 0;  // success
+        }
+    }
+    return result;
+}
+#endif
+
+void log_log( int level, const char* file, int line, const char* fmt, ... )
+{
+    tLog_event ev = {
+        .level = level,
+        .file  = file,
+        .line  = line,
+        .fmt   = fmt
+    };
+    ev.time = getTimestamp();
+
+    lock();
+
+    /* write log messages to console */
+    if( !logConfig.quiet && ( level >= logConfig.level ) )
+    {
+        va_start( ev.ap, fmt );
+        log_print( &ev );
+        va_end( ev.ap );
+    }
+
+#if LOG_USE_CALLBACKS
+    /* invoke all registered logging callbacks */
+    for( size_t i = 0; ( i < LOG_MAX_CALLBACKS ) && ( NULL != logConfig.callbacks[i].cbFn ); i++ )
+    {
+        tCallback* cb = &logConfig.callbacks[i];
+        if ( level >= cb->cbLogLevel )
+        {
+            va_start( ev.ap, fmt );
+            cb->cbFn( &ev, cb->cbData );
+            va_end( ev.ap );
+        }
+    }
+#endif
+
+    unlock();
 }

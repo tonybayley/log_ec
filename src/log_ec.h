@@ -36,37 +36,148 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 
+/* Public macro definitions -------------------------------------------------*/
+
+#define log_trace( ... ) log_log( LOG_TRACE, __FILE__, __LINE__, __VA_ARGS__ )
+#define log_debug( ... ) log_log( LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__ )
+#define log_info( ... )  log_log( LOG_INFO,  __FILE__, __LINE__, __VA_ARGS__ )
+#define log_warn( ... )  log_log( LOG_WARN,  __FILE__, __LINE__, __VA_ARGS__ )
+#define log_error( ... ) log_log( LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__ )
+#define log_fatal( ... ) log_log( LOG_FATAL, __FILE__, __LINE__, __VA_ARGS__ )
+
+#ifndef LOG_MAX_CALLBACKS
+#define LOG_MAX_CALLBACKS 0  /* Default: logging callbacks are disabled */
+#endif
+
+/** Macro that evaluates 'true' if logging callbacks are enabled */
+#define LOG_USE_CALLBACKS ( LOG_MAX_CALLBACKS > 0 )
+
+/* Public type definitions --------------------------------------------------*/
+
+/** Log event type */
 typedef struct {
-  va_list ap;
-  const char *fmt;
-  const char *file;
-  struct tm *time;
-  void *udata;
-  int line;
-  int level;
-} log_Event;
+    uint32_t time;      //!< Timestamp value
+    int level;          //!< Logging level of this log message
+    const char *file;   //!< Filename
+    int line;           //!< Line number
+    const char* fmt;    //!< printf format string
+    va_list ap;         //!< printf variadic arguments list
+} tLog_event;
 
-typedef void (*log_LogFn)(log_Event *ev);
-typedef void (*log_LockFn)(bool lock, void *udata);
+#if LOG_USE_CALLBACKS
+/**
+ * @brief Log callback function type.
+ * 
+ * The registered log callback function is invoked when a log message is
+ * written at or above the currently set logging level.
+ * 
+ * @param ev Event struct that contains the log message and metadata.
+ * @param cbData Pointer to application-specific callback data, if required, or NULL.
+ */
+typedef void (*tLog_callbackFn)( tLog_event* ev, void* cbData );
+#endif
 
-enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
+/**
+ * @brief Log lock function type.
+ * 
+ * The optional log lock function implements thread-safe logging. When the lock 
+ * function is called with lock=true, a mutex is acquired to prevent any other 
+ * threads or RTOS tasks from writing log messages. When the lock function is 
+ * called with lock=false, the mutex is released to allow other threads to write 
+ * log messages.
+ * 
+ * @param lock true to acquire the mutex that enables printing of log messages, false to release the mutex.
+ * @param lockData Pointer to application-specific data, if required, or NULL.
+ */
+typedef void (*tLog_lockFn)( bool lock, void* lockData );
 
-#define log_trace(...) log_log(LOG_TRACE, __FILE__, __LINE__, __VA_ARGS__)
-#define log_debug(...) log_log(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
-#define log_info(...)  log_log(LOG_INFO,  __FILE__, __LINE__, __VA_ARGS__)
-#define log_warn(...)  log_log(LOG_WARN,  __FILE__, __LINE__, __VA_ARGS__)
-#define log_error(...) log_log(LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__)
-#define log_fatal(...) log_log(LOG_FATAL, __FILE__, __LINE__, __VA_ARGS__)
+/**
+ * @brief Log timestamp function type.
+ * 
+ * The optional timestamp function returns the current time as an unsigned
+ * integer value (uint32_t). The timestamp value units are application-specific,
+ * but are normally milliseconds since boot-time.
+ * 
+ * @return timestamp value, as an unsigned integer.
+ */
+typedef uint32_t (*tLog_timestampFn)( void );
 
-const char* log_level_string(int level);
-void log_set_lock(log_LockFn fn, void *udata);
-void log_set_level(int level);
-void log_set_quiet(bool enable);
-int log_add_callback(log_LogFn fn, void *udata, int level);
-int log_add_fp(FILE *fp, int level);
+/**
+ * @brief Log level enum.
+ */
+typedef enum {
+    LOG_TRACE,
+    LOG_DEBUG,
+    LOG_INFO,
+    LOG_WARN,
+    LOG_ERROR,
+    LOG_FATAL
+} tLog_level;
 
-void log_log(int level, const char *file, int line, const char *fmt, ...);
+/* Public function declarations ---------------------------------------------*/
+
+/**
+ * @brief Set the current logging level.
+ * 
+ * Only log messages at or above the currently set logging level are printed.
+ * Log messages below the currently set logging level are suppressed.
+ * 
+ * @param level Currently set logging level.
+ */
+void log_set_level( int level );
+
+/**
+ * @brief Disable or enable the printing of log messages to the console.
+ * 
+ * @param enable true to suppress printing of log messages.
+ *               false to enable printing of log messages
+ */
+void log_set_quiet( bool enable );
+
+#if LOG_USE_CALLBACKS
+/**
+ * @brief Register a logging callback function.
+ * 
+ * @param cbFn Logging callback function.
+ * @param cbData Logging cabllback data, if required, or NULL if not used.
+ * @param cbLogLevel Lowest logging level at which the callback will be invoked.
+ *
+ * @return 0 on success, or -1 on failure (i.e. if the maximum number of callback functions has been exceeded).
+ */
+int log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
+#endif
+
+/**
+ * @brief Register a function that generates timestamps.
+ * 
+ * @param timestampFn Timestamp function.
+ * @return int 
+ */
+void log_set_timestamp_func( tLog_timestampFn timestampFn );
+
+/**
+ * @brief Register a logging lock function.
+ *
+ * The registered lock function acquires and releases a mutex to ensure that 
+ * only a single thread or RTOS task can write log messages at any one time.
+ * 
+ * @param lockFn Lock function.
+ * @param lockData Lock user data, if required, or NULL if not used.
+ */
+void log_set_lock_func( tLog_lockFn lockFn, void* lockData );
+
+/**
+ * @brief Main logging function.
+ * 
+ * @param level Logging level.
+ * @param file Source file that is printing the log message.
+ * @param line Source code line number that is printing the log message.
+ * @param fmt printf format string.
+ * @param ... printf variadic arguments.
+ */
+void log_log( int level, const char* file, int line, const char* fmt, ... );
 
 #ifdef __cplusplus
 }
