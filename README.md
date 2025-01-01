@@ -13,17 +13,14 @@ the printf() function is typically configured to print to a UART, USB virtual
 COM port or J-Link RTT channel that can be viewed on an attached PC.
 
 ```bash
-   20000 DEBUG led.c:57: cdcTransmitResult = 0
-   21000 DEBUG led.c:57: cdcTransmitResult = 0
-   22000 DEBUG led.c:57: cdcTransmitResult = 0
-   23000 DEBUG led.c:57: cdcTransmitResult = 0
-   24000 DEBUG led.c:57: cdcTransmitResult = 0
-   25000 DEBUG led.c:57: cdcTransmitResult = 0
-   26000 DEBUG led.c:57: cdcTransmitResult = 0
-   27000 DEBUG led.c:57: cdcTransmitResult = 0
-   28000 DEBUG led.c:57: cdcTransmitResult = 0
-   29000 DEBUG led.c:57: cdcTransmitResult = 0
-   30000 DEBUG led.c:57: cdcTransmitResult = 0
+   34425 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
+   34796 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
+   34996 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
+   36587 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
+   37054 DEBUG led.c:57: cdcTransmitResult = 0
+   38054 DEBUG led.c:57: cdcTransmitResult = 0
+   39054 DEBUG led.c:57: cdcTransmitResult = 0
+   40054 DEBUG led.c:57: cdcTransmitResult = 0
 ```
 
 ## Usage
