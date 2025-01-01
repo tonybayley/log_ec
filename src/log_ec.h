@@ -136,10 +136,10 @@ void log_set_level( int level );
 /**
  * @brief Disable or enable the printing of log messages to the console.
  * 
- * @param enable true to suppress printing of log messages.
- *               false to enable printing of log messages
+ * @param quiet true to suppress printing of log messages to the console.
+ *              false to enable printing of log messages to the console.
  */
-void log_set_quiet( bool enable );
+void log_set_quiet( bool quiet );
 
 #if LOG_USE_CALLBACKS
 /**

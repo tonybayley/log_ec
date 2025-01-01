@@ -115,7 +115,7 @@ static void log_print( tLog_event* ev )
 
 static bool lock( void )
 {
-    bool lockAcquired = false;
+    bool lockAcquired = true;  // if no lock function is set, lock acquisition always succeeds
     if( NULL != logConfig.lockFn )
     {
         lockAcquired = logConfig.lockFn( true, logConfig.lockData );
@@ -125,7 +125,7 @@ static bool lock( void )
 
 static bool unlock( void )
 {
-    bool lockReleased = false;
+    bool lockReleased = true;  // if no lock function is set, lock release always succeeds
     if( NULL != logConfig.lockFn )
     {
         lockReleased = logConfig.lockFn( false, logConfig.lockData );
@@ -152,9 +152,9 @@ void log_set_level( int level )
     logConfig.level = level;
 }
 
-void log_set_quiet( bool enable )
+void log_set_quiet( bool quiet )
 {
-    logConfig.quiet = enable;
+    logConfig.quiet = quiet;
 }
 
 #if LOG_USE_CALLBACKS
