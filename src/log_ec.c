@@ -185,30 +185,30 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
 
     bool lockAcquired = lock();
 
-    /* write log messages to console */
-    if( !logConfig.quiet && ( level >= logConfig.level ) )
-    {
-        va_start( ev.ap, fmt );
-        log_print( &ev );
-        va_end( ev.ap );
-    }
-
-#if LOG_USE_CALLBACKS
-    /* invoke all registered logging callbacks */
-    for( size_t i = 0; ( i < LOG_MAX_CALLBACKS ) && ( NULL != logConfig.callbacks[i].cbFn ); i++ )
-    {
-        tCallback* cb = &logConfig.callbacks[i];
-        if ( level >= cb->cbLogLevel )
-        {
-            va_start( ev.ap, fmt );
-            cb->cbFn( &ev, cb->cbData );
-            va_end( ev.ap );
-        }
-    }
-#endif
-
     if( lockAcquired )
     {
+        /* write log messages to console */
+        if( !logConfig.quiet && ( level >= logConfig.level ) )
+        {
+            va_start( ev.ap, fmt );
+            log_print( &ev );
+            va_end( ev.ap );
+        }
+
+#if LOG_USE_CALLBACKS
+        /* invoke all registered logging callbacks */
+        for( size_t i = 0; ( i < LOG_MAX_CALLBACKS ) && ( NULL != logConfig.callbacks[i].cbFn ); i++ )
+        {
+            tCallback* cb = &logConfig.callbacks[i];
+            if ( level >= cb->cbLogLevel )
+            {
+                va_start( ev.ap, fmt );
+                cb->cbFn( &ev, cb->cbData );
+                va_end( ev.ap );
+            }
+        }
+#endif
+
         unlock();
     }
 }
