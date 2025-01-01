@@ -12,8 +12,19 @@ The embedded target must implement the printf() function. On embedded systems,
 the printf() function is typically configured to print to a UART, USB virtual 
 COM port or J-Link RTT channel that can be viewed on an attached PC.
 
-![screenshot](https://cloud.githubusercontent.com/assets/3920290/23831970/a2415e96-0723-11e7-9886-f8f5d2de60fe.png)
-
+```bash
+   20000 DEBUG led.c:57: cdcTransmitResult = 0
+   21000 DEBUG led.c:57: cdcTransmitResult = 0
+   22000 DEBUG led.c:57: cdcTransmitResult = 0
+   23000 DEBUG led.c:57: cdcTransmitResult = 0
+   24000 DEBUG led.c:57: cdcTransmitResult = 0
+   25000 DEBUG led.c:57: cdcTransmitResult = 0
+   26000 DEBUG led.c:57: cdcTransmitResult = 0
+   27000 DEBUG led.c:57: cdcTransmitResult = 0
+   28000 DEBUG led.c:57: cdcTransmitResult = 0
+   29000 DEBUG led.c:57: cdcTransmitResult = 0
+   30000 DEBUG led.c:57: cdcTransmitResult = 0
+```
 
 ## Usage
 **[log_ec.c](src/log_ec.c)** and **[log_ec.h](src/log_ec.h)** should be added to
