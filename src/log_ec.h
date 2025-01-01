@@ -41,14 +41,14 @@ extern "C" {
 
 /* Public macro definitions -------------------------------------------------*/
 
-#define __FILENAME__ ( strrchr( __FILE__, '/' ) ? strrchr( __FILE__, '/' ) + 1 : __FILE__ )
+#define FILE_NAME ( strrchr( __FILE__, '/' ) ? strrchr( __FILE__, '/' ) + 1 : __FILE__ )
 
-#define log_trace( ... ) log_log( LOG_TRACE, __FILENAME__, __LINE__, __VA_ARGS__ )
-#define log_debug( ... ) log_log( LOG_DEBUG, __FILENAME__, __LINE__, __VA_ARGS__ )
-#define log_info( ... )  log_log( LOG_INFO,  __FILENAME__, __LINE__, __VA_ARGS__ )
-#define log_warn( ... )  log_log( LOG_WARN,  __FILENAME__, __LINE__, __VA_ARGS__ )
-#define log_error( ... ) log_log( LOG_ERROR, __FILENAME__, __LINE__, __VA_ARGS__ )
-#define log_fatal( ... ) log_log( LOG_FATAL, __FILENAME__, __LINE__, __VA_ARGS__ )
+#define log_trace( ... ) log_log( LOG_TRACE, FILE_NAME, __LINE__, __VA_ARGS__ )
+#define log_debug( ... ) log_log( LOG_DEBUG, FILE_NAME, __LINE__, __VA_ARGS__ )
+#define log_info( ... )  log_log( LOG_INFO,  FILE_NAME, __LINE__, __VA_ARGS__ )
+#define log_warn( ... )  log_log( LOG_WARN,  FILE_NAME, __LINE__, __VA_ARGS__ )
+#define log_error( ... ) log_log( LOG_ERROR, FILE_NAME, __LINE__, __VA_ARGS__ )
+#define log_fatal( ... ) log_log( LOG_FATAL, FILE_NAME, __LINE__, __VA_ARGS__ )
 
 #ifndef LOG_MAX_CALLBACKS
 #define LOG_MAX_CALLBACKS 0  /* Default: logging callbacks are disabled */
