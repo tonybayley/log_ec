@@ -90,8 +90,10 @@ typedef void (*tLog_callbackFn)( tLog_event* ev, void* cbData );
  * 
  * @param lock true to acquire the mutex that enables printing of log messages, false to release the mutex.
  * @param lockData Pointer to application-specific data, if required, or NULL.
+ * 
+ * @return true if the mutex was successfully acquired or released, or false on failure.
  */
-typedef void (*tLog_lockFn)( bool lock, void* lockData );
+typedef bool (*tLog_lockFn)( bool lock, void* lockData );
 
 /**
  * @brief Log timestamp function type.
@@ -144,9 +146,9 @@ void log_set_quiet( bool enable );
  * @param cbData Logging cabllback data, if required, or NULL if not used.
  * @param cbLogLevel Lowest logging level at which the callback will be invoked.
  *
- * @return 0 on success, or -1 on failure (i.e. if the maximum number of callback functions has been exceeded).
+ * @return true on success, or false on failure (i.e. if the maximum number of callback functions has been exceeded).
  */
-int log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
+bool log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
 #endif
 
 /**

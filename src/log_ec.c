@@ -80,8 +80,8 @@ static const char *level_colors[] = {
 
 static uint32_t getTimestamp( void );
 static void log_print( tLog_event* ev );
-static void lock( void );
-static void unlock( void );
+static bool lock( void );
+static bool unlock( void );
 
 
 /* Private function definitions ---------------------------------------------*/
@@ -113,20 +113,24 @@ static void log_print( tLog_event* ev )
     vprintf(ev->fmt, ev->ap);
 }
 
-static void lock( void )
+static bool lock( void )
 {
+    bool lockAcquired = false;
     if( NULL != logConfig.lockFn )
     {
-        logConfig.lockFn( true, logConfig.lockData );
+        lockAcquired = logConfig.lockFn( true, logConfig.lockData );
     }
+    return lockAcquired;
 }
 
-static void unlock( void )
+static bool unlock( void )
 {
+    bool lockReleased = false;
     if( NULL != logConfig.lockFn )
     {
-        logConfig.lockFn( false, logConfig.lockData );
+        lockReleased = logConfig.lockFn( false, logConfig.lockData );
     }
+    return lockReleased;
 }
 
 
@@ -154,18 +158,18 @@ void log_set_quiet( bool enable )
 }
 
 #if LOG_USE_CALLBACKS
-int log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+bool log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 {
-    int result = -1;  // failure
+    bool success = false;
     for( size_t i = 0; i < LOG_MAX_CALLBACKS; i++ )
     {
-        if( ( result != 0 ) && ( NULL == logConfig.callbacks[i].cbFn ) )
+        if( ( !success ) && ( NULL == logConfig.callbacks[i].cbFn ) )
         {
             logConfig.callbacks[i] = (tCallback) { cbFn, cbData, cbLogLevel };
-            result = 0;  // success
+            success = true;
         }
     }
-    return result;
+    return success;
 }
 #endif
 
@@ -179,7 +183,7 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
     };
     ev.time = getTimestamp();
 
-    lock();
+    bool lockAcquired = lock();
 
     /* write log messages to console */
     if( !logConfig.quiet && ( level >= logConfig.level ) )
@@ -203,5 +207,8 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
     }
 #endif
 
-    unlock();
+    if( lockAcquired )
+    {
+        unlock();
+    }
 }
