@@ -142,12 +142,14 @@ typedef enum {
 void log_set_level( int level );
 
 /**
- * @brief Disable or enable the printing of log messages to the console.
- * 
- * @param quiet true to suppress printing of log messages to the console.
- *              false to enable printing of log messages to the console.
+ * @brief Disable the printing of log messages to the console.
  */
-void log_set_quiet( bool quiet );
+void log_off( void );
+
+/**
+ * @brief Enable the printing of log messages to the console.
+ */
+void log_on( void );
 
 #if LOG_USE_CALLBACKS
 /**

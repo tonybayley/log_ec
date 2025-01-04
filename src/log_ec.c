@@ -49,7 +49,7 @@ typedef struct {
     tLog_lockFn lockFn;                      //!< Lock function
     tLog_timestampFn timestampFn;            //!< Timestamp function
     int level;                               //!< Currently set logging level
-    bool quiet;                              //!< Flag to suppress printing of log messages to the console
+    bool consoleLoggingDisabled;             //!< Flag to suppress printing of log messages to the console
 #if LOG_USE_CALLBACKS
     tCallback callbacks[LOG_MAX_CALLBACKS];  //!< Array of logging callback functions
 #endif
@@ -62,7 +62,7 @@ static tLogConfig logConfig = {
     .lockFn = NULL,
     .timestampFn = NULL,
     .level = LOG_TRACE,
-    .quiet = false,
+    .consoleLoggingDisabled = false,
 };
 
 static const char* level_strings[] = {
@@ -152,9 +152,14 @@ void log_set_level( int level )
     logConfig.level = level;
 }
 
-void log_set_quiet( bool quiet )
+void log_off( void )
 {
-    logConfig.quiet = quiet;
+    logConfig.consoleLoggingDisabled = true;
+}
+
+void log_on( void )
+{
+    logConfig.consoleLoggingDisabled = false;
 }
 
 #if LOG_USE_CALLBACKS
@@ -188,7 +193,7 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
     if( lockAcquired )
     {
         /* write log messages to console */
-        if( !logConfig.quiet && ( level >= logConfig.level ) )
+        if( !logConfig.consoleLoggingDisabled && ( level >= logConfig.level ) )
         {
             va_start( ev.ap, fmt );
             log_print( &ev );

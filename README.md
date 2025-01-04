@@ -3,11 +3,11 @@
 A simple logging library for embedded C.
 
 This library is derived from the _rxi_ logging library https://github.com/rxi/log.c.
-However, I have modified that library to make it more suitable for use in
-resource-limited embedded systems, and just to suit my personal preferences.
-Log messages are written to the console. Optionally, callback functions may be
-registered to perform other logging actions such as writing logs to flash memory
-or publishing logs via network connectivity.
+However, I have modified the library to make it more suitable for resource-limited 
+embedded systems, and just to suit my personal preferences. Log messages are 
+written to the console. Optionally, callback functions may be registered to 
+perform other logging actions such as writing logs to flash memory or publishing 
+logs via a network interface.
 
 By default, the printf() function is used ot write log messages to the console.
 On embedded systems, the printf() function is typically configured to print to a 
@@ -70,13 +70,17 @@ logging level is initialised to `LOG_TRACE` at boot time, so that log messages
 at all levels are displayed.
 
 
-### log_set_quiet( bool quiet )
+### log_off( void )
 
-Logging to the console can be suppressed by calling `log_set_quiet()` with
-parameter `quiet=true`, and can be enabled again by calling `log_set_quiet()` 
-with parameter `quiet=false`. While _quiet_ mode is active, the library does not 
-write log messages to the console but continues to invoke logging callbacks if 
-any are set.
+By default, logging to the console is enabled at boot time. However, it can be 
+disabled by calling `log_off()`. When disabled, the library does not write log 
+messages to the console but continues to invoke logging callbacks if any are set.
+
+
+### log_on( void )
+
+If logging has been disabled by calling `log_off()`, it can be enabled again by 
+calling `log_on()`.
 
 
 ### log_set_timestamp_func( tLog_timestampFn timestampFn )
