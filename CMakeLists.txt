@@ -21,3 +21,9 @@ target_include_directories(log_ec INTERFACE
 target_sources(log_ec INTERFACE
     src/log_ec.c
 )
+
+# -----------------------------------------------------------------------------
+
+# Unit tests
+include(CTest)
+add_subdirectory(test)

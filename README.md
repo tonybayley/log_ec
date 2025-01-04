@@ -286,6 +286,18 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 ```
 
 
+## Unit tests
+
+Unit tests are implemented in the file [**test/test_runner.c**](test/test_runner.c)
+and are built and run using the following commands in the root directory.
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release
+```
+
+
 ## License
 
 This library is free software; you can redistribute it and/or modify it under

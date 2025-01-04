@@ -26,6 +26,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <inttypes.h>
 #include "log_ec.h"
 
 /* Private macro definitions ------------------------------------------------*/
@@ -104,10 +105,10 @@ static uint32_t getTimestamp( void )
 static void log_print( tLog_event* ev )
 {
 #if LOG_USE_COLOR
-    CONSOLE_PRINTF( "%10lu %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+    CONSOLE_PRINTF( "%8" PRIu32 " %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
             ev->time, level_colors[ev->level], level_strings[ev->level], ev->file, ev->line );  /* message prefix: colour */
 #else
-    CONSOLE_PRINTF( "%8lu %-5s %s:%d: ",
+    CONSOLE_PRINTF( "%8" PRIu32 " %-5s %s:%d: ",
              ev->time, level_strings[ev->level], ev->file, ev->line );  /* message prefix: monochrome */
 #endif
     CONSOLE_VPRINTF(ev->fmt, ev->ap);  /* message body */
