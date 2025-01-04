@@ -110,25 +110,32 @@ int main(void)
 ```
 
 
-### log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+### log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 
 If the preprocessor macro `LOG_MAX_CALLBACKS` is set to a non-zero positive 
 integer, then up to `LOG_MAX_CALLBACKS` logging callback functions can be 
-registered by calling the `log_add_callback()` function. The function parameters 
-are:
+registered by calling the `log_register_callback_func()` function. The function 
+parameters are:
 
 - **cbFn**: Logging callback function pointer.
 - **cbData**: Pointer to user data, if required, or NULL if the callback does not require user data.
 - **cbLogLevel**: Lowest logging level at which the callback will be invoked.
 
-When a logging callback function is invoked, the `ev` parameter points to a 
-struct of type `tLog_event` that contains the log message and all associated 
-metadata, and the `cbData` parameter is a pointer to the user data object that 
-was specified when the callback was registered.
+The registered callback function will be invoked when a log message is written 
+at a log level equal to or greater than `cbLogLevel`. The parameters passed to 
+the callback function are the log message and metadata, along with the callback's 
+associated data object `cbData`.
 
 Logging callback functions enable target-specific logging features to be
-implemented, such as writing ERROR logs to a flash filesystem, or publishing
+implemented, such as writing error logs to a flash filesystem, or publishing
 log messages via an MQTT broker.
+
+
+### log_unregister_callback_func( tLog_callbackFn cbFn )
+
+Unregister a previously-registered logging callbac function. After unregistering 
+a callback function, that function will no longer be invoked when log messages 
+are written.
 
 
 ### log_set_lock_func( tLog_lockFn lockFn, void* lockData )

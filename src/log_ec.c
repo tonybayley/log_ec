@@ -163,18 +163,35 @@ void log_on( void )
 }
 
 #if LOG_USE_CALLBACKS
-bool log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 {
-    bool success = false;
-    for( size_t i = 0; i < LOG_MAX_CALLBACKS; i++ )
+    bool registered = false;
+    log_unregister_callback_func( cbFn );  /* remove existing registration, if any, to prevent duplicates */
+
+    for( size_t i = 0U; ( !registered ) && ( i < LOG_MAX_CALLBACKS); i++ )
     {
-        if( ( !success ) && ( NULL == logConfig.callbacks[i].cbFn ) )
+        if( NULL == logConfig.callbacks[i].cbFn )
         {
+            /* Register the new callback function pointer, logging level and data object */
             logConfig.callbacks[i] = (tCallback) { cbFn, cbData, cbLogLevel };
-            success = true;
+            registered = true;
         }
     }
-    return success;
+    return registered;
+}
+
+void log_unregister_callback_func( tLog_callbackFn cbFn )
+{
+    bool finished = false;
+    for( size_t i = 0U; ( !finished ) && ( i < LOG_MAX_CALLBACKS ); i++ )
+    {
+        if( cbFn == logConfig.callbacks[i].cbFn )
+        {
+            /* Delete the previously registered function pointer */
+            logConfig.callbacks[i] = (tCallback) { NULL, NULL, LOG_TRACE };
+            finished = true;
+        }
+    }
 }
 #endif
 

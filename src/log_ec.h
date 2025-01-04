@@ -51,11 +51,11 @@ extern "C" {
 #define log_fatal( ... ) log_log( LOG_FATAL, FILE_NAME, __LINE__, __VA_ARGS__ )
 
 #ifndef LOG_MAX_CALLBACKS
-#define LOG_MAX_CALLBACKS 0  /* Default: logging callbacks are disabled */
+#define LOG_MAX_CALLBACKS 0U  /* Default: logging callbacks are disabled */
 #endif
 
 /** Macro that evaluates 'true' if logging callbacks are enabled */
-#define LOG_USE_CALLBACKS ( LOG_MAX_CALLBACKS > 0 )
+#define LOG_USE_CALLBACKS ( LOG_MAX_CALLBACKS > 0U )
 
 #ifndef CONSOLE_PRINTF
 #define CONSOLE_PRINTF( ... ) printf( __VA_ARGS__ )  /* Default: use printf() to write log message prefix to the console */
@@ -154,14 +154,27 @@ void log_on( void );
 #if LOG_USE_CALLBACKS
 /**
  * @brief Register a logging callback function.
- * 
- * @param cbFn Logging callback function.
- * @param cbData Logging cabllback data, if required, or NULL if not used.
+ *
+ * The registered callback function will be invoked when a log message is written at a log level equal to or greater 
+ * than  cbLogLevel. The parameters passed to the callback function are the log message and metadata, along with the 
+ * callback's associated data object cbData.
+ *
+ * @param cbFn Logging callback function pointer.
+ * @param cbData Logging callback data object pointer, if required, or NULL if not used.
  * @param cbLogLevel Lowest logging level at which the callback will be invoked.
  *
  * @return true on success, or false on failure (i.e. if the maximum number of callback functions has been exceeded).
  */
-bool log_add_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
+bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
+
+/**
+ * @brief Unegister a logging callback function.
+ *
+ * After unregistering a callback function, that function will no longer be invoked when log messages are written.
+ *
+ * @param cbFn Logging callback function pointer.
+ */
+void log_unregister_callback_func( tLog_callbackFn cbFn );
 #endif
 
 /**
