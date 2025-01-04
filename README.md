@@ -2,15 +2,21 @@
 
 A simple logging library for embedded C.
 
-This library is based on the _rxi_ logging library https://github.com/rxi/log.c
-with modifications to make it suitable for resource-limited embedded systems.
+This library is derived from the _rxi_ logging library https://github.com/rxi/log.c.
+However, I have modified that library to make it more suitable for use in
+resource-limited embedded systems, and just to suit my personal preferences.
 Log messages are written to the console. Optionally, callback functions may be
 registered to perform other logging actions such as writing logs to flash memory
 or publishing logs via network connectivity.
 
-The embedded target must implement the printf() function. On embedded systems, 
-the printf() function is typically configured to print to a UART, USB virtual 
-COM port or J-Link RTT channel that can be viewed on an attached PC.
+By default, the printf() function is used ot write log messages to the console.
+On embedded systems, the printf() function is typically configured to print to a 
+UART, USB virtual COM port or J-Link RTT channel that can be viewed on an 
+attached PC. However, systems that do not support printf() can still use the
+_log\_ec_ library as described in the section titled _"Using custom console printing macros"_.
+
+Log messages are prefixed with a timestamp, logging level, source code filename
+and line number. An example lo output is shown below:
 
 ```bash
    34425 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
@@ -24,9 +30,10 @@ COM port or J-Link RTT channel that can be viewed on an attached PC.
 ```
 
 ## Usage
-**[log_ec.c](src/log_ec.c)** and **[log_ec.h](src/log_ec.h)** should be added to
-an existing project and compiled along with it. The library provides six
-function-like macros for logging:
+To use the _log\_ec_ library in an existing project, either build and link the library as explained in the section 
+titled _"Building the log\_ec library with CMake"_, or just add the two files **[log_ec.c](src/log_ec.c)** and 
+**[log_ec.h](src/log_ec.h)** to the project and compile them along with the existing source files. The library provides 
+six function-like macros for logging:
 
 ```c
 log_trace(const char* fmt, ...);
@@ -47,7 +54,7 @@ The macros print the given format string to the console, prefixed with a
 timestamp, logging level, filename and line number:
 
 ```
-   21054 DEBUG src/main.c:11: Hello world
+   21054 DEBUG main.c:11: Hello world
 ```
 
 
@@ -237,6 +244,15 @@ If you are building with CMake, then setting the `LOG_MAX_CALLBACKS` CMake cache
 variable to a positive integer string value causes the same value to be assigned
 to the `LOG_MAX_CALLBACKS` preprocessor macro.
 
+### Using custom console printing macros
+
+By default, log messages are printed to the console using the C standard library
+_printf()_ and _vprintf()_ functions. However, if the build system defines macros 
+_CONSOLE\_PRINTF()_ and _CONSOLE\_VPRINTF()_, then those macros will be used 
+instead of _printf()_ and _vprintf()_. That enables resource-constrained embedded 
+systems that do not implement _printf()_ to write log messages using custom 
+functions that write directly to a UART, etc.
+
 
 ## Building the log_ec library with CMake
 
@@ -247,9 +263,9 @@ top-level _CMakeLists.txt_ file:
 
 ```cmake
 FetchContent_Declare(log_ec
-    GIT_REPOSITORY  git@bitbucket.org:tbayley/log_ec.git
+    GIT_REPOSITORY  https://github.com/tonybayley/log_ec.git
     GIT_TAG         main
-    SOURCE_DIR      ${CMAKE_CURRENT_LIST_DIR}/src/log_ec
+    SOURCE_DIR      ${CMAKE_CURRENT_LIST_DIR}/log_ec
 )
 
 FetchContent_MakeAvailable( log_ec )

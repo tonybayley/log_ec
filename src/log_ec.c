@@ -104,18 +104,18 @@ static uint32_t getTimestamp( void )
 static void log_print( tLog_event* ev )
 {
 #if LOG_USE_COLOR
-    printf( "%10lu %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
-            ev->time, level_colors[ev->level], level_strings[ev->level], ev->file, ev->line );
+    CONSOLE_PRINTF( "%10lu %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+            ev->time, level_colors[ev->level], level_strings[ev->level], ev->file, ev->line );  /* message prefix: colour */
 #else
-    printf( "%8lu %-5s %s:%d: ",
-             ev->time, level_strings[ev->level], ev->file, ev->line );
+    CONSOLE_PRINTF( "%8lu %-5s %s:%d: ",
+             ev->time, level_strings[ev->level], ev->file, ev->line );  /* message prefix: monochrome */
 #endif
-    vprintf(ev->fmt, ev->ap);
+    CONSOLE_VPRINTF(ev->fmt, ev->ap);  /* message body */
 }
 
 static bool lock( void )
 {
-    bool lockAcquired = true;  // if no lock function is set, lock acquisition always succeeds
+    bool lockAcquired = true;  /* if no lock function is set, lock acquisition always succeeds */
     if( NULL != logConfig.lockFn )
     {
         lockAcquired = logConfig.lockFn( true, logConfig.lockData );
@@ -125,7 +125,7 @@ static bool lock( void )
 
 static bool unlock( void )
 {
-    bool lockReleased = true;  // if no lock function is set, lock release always succeeds
+    bool lockReleased = true;  /* if no lock function is set, lock release always succeeds */
     if( NULL != logConfig.lockFn )
     {
         lockReleased = logConfig.lockFn( false, logConfig.lockData );

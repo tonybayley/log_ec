@@ -57,6 +57,14 @@ extern "C" {
 /** Macro that evaluates 'true' if logging callbacks are enabled */
 #define LOG_USE_CALLBACKS ( LOG_MAX_CALLBACKS > 0 )
 
+#ifndef CONSOLE_PRINTF
+#define CONSOLE_PRINTF( ... ) printf( __VA_ARGS__ )  /* Default: use printf() to write log message prefix to the console */
+#endif
+
+#ifndef CONSOLE_VPRINTF
+#define CONSOLE_VPRINTF( FMT, ARG ) vprintf( FMT, ARG )  /* Default: use vprintf() to write log message body to the console */
+#endif
+
 /* Public type definitions --------------------------------------------------*/
 
 /** Log event type */
