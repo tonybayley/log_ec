@@ -4,19 +4,20 @@ A simple logging library for embedded C.
 
 This library is derived from the _rxi_ logging library https://github.com/rxi/log.c.
 However, I have modified the library to make it more suitable for resource-limited 
-embedded systems, and just to suit my personal preferences. Log messages are 
-written to the console. Optionally, callback functions may be registered to 
-perform other logging actions such as writing logs to flash memory or publishing 
-logs via a network interface.
+embedded systems, and to suit my personal preferences. Log messages are written 
+to the console. Optionally, callback functions may be registered to perform 
+other logging actions such as writing logs to flash memory or publishing logs 
+via a network interface.
 
-By default, the printf() function is used ot write log messages to the console.
-On embedded systems, the printf() function is typically configured to print to a 
-UART, USB virtual COM port or J-Link RTT channel that can be viewed on an 
-attached PC. However, systems that do not support printf() can still use the
-_log\_ec_ library as described in the section titled _"Using custom console printing macros"_.
+By default, the _printf()_ function is used to write log messages to the console.
+On embedded systems, the _printf()_ function is typically configured to print to 
+a UART, USB virtual COM port or J-Link RTT channel that can be viewed on an 
+attached PC. However, systems that do not support _printf()_ can still use the
+_log\_ec_ library as described in the section titled 
+["Using custom console printing macros"](https://github.com/tonybayley/log_ec#using-custom-console-printing-macros).
 
 Log messages are prefixed with a timestamp, logging level, source code filename
-and line number. An example lo output is shown below:
+and line number. An example of the log output is shown below:
 
 ```bash
    34425 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
@@ -30,10 +31,11 @@ and line number. An example lo output is shown below:
 ```
 
 ## Usage
-To use the _log\_ec_ library in an existing project, either build and link the library as explained in the section 
-titled _"Building the log\_ec library with CMake"_, or just add the two files **[log_ec.c](src/log_ec.c)** and 
-**[log_ec.h](src/log_ec.h)** to the project and compile them along with the existing source files. The library provides 
-six function-like macros for logging:
+To use the _log\_ec_ library in an existing project, either build and link the library as described in the section 
+titled ["Building the log_ec library with CMake"](https://github.com/tonybayley/log_ec#building-the-log_ec-library-with-cmake), 
+or just add the two files **[log_ec.c](src/log_ec.c)** and **[log_ec.h](src/log_ec.h)** to the project and compile them 
+along with the existing source files. The library provides six function-like macros for logging at six different logging 
+levels:
 
 ```c
 log_trace(const char* fmt, ...);
@@ -50,8 +52,8 @@ Each macro takes a printf format string followed by additional arguments:
 log_debug( "Hello %s%c", "worl", 'd' );
 ```
 
-The macros print the given format string to the console, prefixed with a 
-timestamp, logging level, filename and line number:
+The macros print the the log message defined by the given format string to the 
+console, prefixed with a timestamp, logging level, filename and line number:
 
 ```
    21054 DEBUG main.c:11: Hello world
@@ -62,12 +64,11 @@ timestamp, logging level, filename and line number:
 
 ### log_set_level( int level )
 
-The current logging level can be set by using the `log_set_level()` function.
-`LOG_TRACE` is the lowest (most detailed) logging level and `LOG_FATAL` is the
-highest (least detailed) logging level. Only log messages at or above the 
-logging level set by this function are written to the console. By default the
-logging level is initialised to `LOG_TRACE` at boot time, so that log messages
-at all levels are displayed.
+The logging level is set with the `log_set_level()` function. `LOG_TRACE` is the
+lowest (most detailed) logging level and `LOG_FATAL` is the highest (least 
+detailed) logging level. Only log messages at or above the currently set logging 
+level are written to the console. By default the logging level is initialised to 
+`LOG_TRACE` at boot time, so that log messages at all levels are displayed.
 
 
 ### log_off( void )
@@ -79,18 +80,16 @@ messages to the console but continues to invoke logging callbacks if any are set
 
 ### log_on( void )
 
-If logging has been disabled by calling `log_off()`, it can be enabled again by 
-calling `log_on()`.
+If logging has previously been disabled by calling `log_off()`, it can be 
+enabled again by calling `log_on()`.
 
 
 ### log_set_timestamp_func( tLog_timestampFn timestampFn )
 
-A function that generates timestamps may be set by calling `log_set_timestamp_func()`,
-with the parameter `timestampFn` set to the timestamp function pointer. The 
-timestamp function returns unsigned integer values (uint32_t). The units are
-user-defined, but are typically set to elapsed milliseconds since boot-time. For
-example, the following code-snippet shows how to configure timestamps in units
-of milliseconds on a FreeRTOS based system:
+Configure a function to generate timestamps by calling `log_set_timestamp_func()`.
+The timestamp function shall return unsigned integer values (uint32_t). The 
+time units are user-defined. As an example, the following code-snippet shows how 
+to configure timestamps in units of milliseconds on a FreeRTOS based system:
 
 ```c
 #include "log_ec.h"
@@ -122,9 +121,8 @@ parameters are:
 - **cbLogLevel**: Lowest logging level at which the callback will be invoked.
 
 The registered callback function will be invoked when a log message is written 
-at a log level equal to or greater than `cbLogLevel`. The parameters passed to 
-the callback function are the log message and metadata, along with the callback's 
-associated data object `cbData`.
+at a log level equal to or greater than `cbLogLevel`. Callback functions shall 
+implement the _tLog\_callbackFn_ function signature.
 
 Logging callback functions enable target-specific logging features to be
 implemented, such as writing error logs to a flash filesystem, or publishing
@@ -133,40 +131,40 @@ log messages via an MQTT broker.
 
 ### log_unregister_callback_func( tLog_callbackFn cbFn )
 
-Unregister a previously-registered logging callbac function. After unregistering 
+Unregister a previously-registered logging callback function. After unregistering 
 a callback function, that function will no longer be invoked when log messages 
 are written.
 
 
 ### log_set_lock_func( tLog_lockFn lockFn, void* lockData )
 
-If the log will be written to from multiple threads or RTOS tasks, the user can
-supply a lock function to prevent interleaving of messages from different 
-threads in the console output. To do this, the function `log_set_lock_func()` is
-called with parameter `lockFn` as the lock function pointer and parameter
-`lockData` as a pointer to a user data object (e.g. a mutex handle) if required
-by the lock function, or NULL if user data is not required.
+If log messages are written from multiple threads or RTOS tasks, the user can
+supply a lock function to prevent the messages becoming interleaved. The lock
+function is configured by calling `log_set_lock_func()`, with the lock function 
+pointer as parameter `lockFn`. Optionally, a user data object (e.g. a mutex 
+handle) may be specified via parameter `lockData`. The lock function shall 
+implement the _tLog\_lockFn_ function signature.
 
-
-The logging functions call the user-supplied lock function with `lock=true` to 
-acquire a mutex before writing to the log, and call it again with `lock=false`
+The user-supplied lock function is called with `lock=true` to acquire a mutex 
+before writing log messages to the console, and is called again with `lock=false`
 to release the mutex when log writing is complete.
 
-The lock function is more complex if the log is written from ISR context 
-(Interrupt Service Routines) as well as from RTOS tasks because ISRs must not
-block. When the lock function is called from RTOS task context, the task blocks 
-until the mutex can be acquired if the mutex is currently held by another task. 
-Log writing may be delayed, but is guaranteed to occur. However, when the lock 
-function is called from ISR context, it should return immediately with return 
-value `false` if it cannot acquire the mutex. Therefore log messages from ISR 
-context may be discarded if a task is writing to the log at the same time and 
-has ownership of the mutex.
+If the log is written from ISR context (Interrupt Service Routines), then the 
+logging system cannot wait to acquire the mutex because ISRs must be 
+non-blocking. To achieve this, when the lock function is called from ISR context 
+and a task already has ownership of the mutex, the lock function shall return 
+immediately with value `false` to indicate that the mutex has not been acquired. 
+When the lock function is called from RTOS task context and another task already 
+has ownership of the mutex, the task blocks until the mutex can be acquired. 
+Therefore, log messages written from a task may be delayed, but are guaranteed 
+to be displayed. By contrast, log messages written from ISR context may be 
+discarded if the mutex cannot be acquired.
 
 The following code snippet shows how to configure a lock function on a FreeRTOS
-based system that uses an ARM Cortex-M processor. The FreeRTOS ports for many
-ARM Cortex-M processors include a macro `xPortIsInsideInterrupt()` that can be
-used to determine whether the system is in ISR or Task context, so that the 
-appropriate context-specific lock behaviour can be implemented.
+based system. In this example, the target is an ARM Cortex-M processor whose 
+FreeRTOS port implements the macro `xPortIsInsideInterrupt()`. This macro can 
+determine whether the system is in ISR or Task context, so that the appropriate 
+context-specific lock behaviour can be implemented.
 
 ```c
 #include "log_ec.h"
