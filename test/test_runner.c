@@ -72,6 +72,10 @@ static uint32_t getTimestamp( void );
 static void clearLogMessage( void );
 static int test_log_trace_messageFormat( void );
 static int test_log_debug_messageFormat( void );
+static int test_log_info_messageFormat( void );
+static int test_log_warn_messageFormat( void );
+static int test_log_error_messageFormat( void );
+static int test_log_fatal_with10DigitTimestamp_messageFormat( void );
 
 
 /* Private variable definitions ---------------------------------------------*/
@@ -80,6 +84,10 @@ static int test_log_debug_messageFormat( void );
 tTestItem testList[] = {
     { "log_trace message format", test_log_trace_messageFormat },
     { "log_debug message format", test_log_debug_messageFormat },
+    { "log_info message format", test_log_info_messageFormat },
+    { "log_warn message format", test_log_warn_messageFormat },
+    { "log_error message format", test_log_error_messageFormat },
+    { "log_fatal message format with 10 digit timestamp", test_log_fatal_with10DigitTimestamp_messageFormat },
 };
 
 /** Number of test cases */
@@ -203,7 +211,7 @@ static int test_log_trace_messageFormat( void )
 }
 
 /**
- * @brief Verify the format of log messages printed by log_trace() macro.
+ * @brief Verify the format of log messages printed by log_debug() macro.
  * 
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -213,6 +221,68 @@ static int test_log_debug_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 DEBUG test_runner.c:%u: testValue is 0xFACE\n", NEXT_LINE );
     log_debug( "testValue is 0x%04X\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    return result;
+}
+
+/**
+ * @brief Verify the format of log messages printed by log_info() macro.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_info_messageFormat( void )
+{
+    const char* testValue = "\"Hello world!\"";
+    char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "   12345 INFO  test_runner.c:%u: testValue is \"Hello world!\"\n", NEXT_LINE );
+    log_info( "testValue is %s\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    return result;
+}
+
+/**
+ * @brief Verify the format of log messages printed by log_warn() macro.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_warn_messageFormat( void )
+{
+    unsigned int testValue = -2001;
+    char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "   12345 WARN  test_runner.c:%u: testValue is -2001\n", NEXT_LINE );
+    log_warn( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    return result;
+}
+
+/**
+ * @brief Verify the format of log messages printed by log_error() macro.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_error_messageFormat( void )
+{
+    int testValue = 48;
+    char expectedLogMessage[80] = { '\0'};
+    setExpectedTimestamp( 0U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
+    sprintf( expectedLogMessage, "       0 ERROR test_runner.c:%u: testValue is 48\n", NEXT_LINE );
+    log_error( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    return result;
+}
+
+/**
+ * @brief Verify the format of log messages printed by log_fatal() macro, with 10 digit timestamp.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
+{
+    unsigned int testValue = 77U;
+    char expectedLogMessage[80] = { '\0'};
+    setExpectedTimestamp( 4294967295U );  /* 10 digit timestamp causes width of 8-character timestamp field to increase */
+    sprintf( expectedLogMessage, "4294967295 FATAL test_runner.c:%u: testValue is 77\n", NEXT_LINE );
+    log_fatal( "testValue is %u\n", testValue );
     int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
     return result;
 }

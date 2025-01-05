@@ -51,6 +51,10 @@ target_link_options(TestRunner PRIVATE
 set(testList
     "log_trace message format"
     "log_debug message format"
+    "log_info message format"
+    "log_warn message format"
+    "log_error message format"
+    "log_fatal message format with 10 digit timestamp"
 )
 
 foreach(testItem IN LISTS testList)
