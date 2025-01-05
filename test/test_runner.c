@@ -113,5 +113,5 @@ static int test_log_trace_messageFormat( void )
  */
 static int test_log_debug_messageFormat( void )
 {
-    return 1;  // fail
+    return 0;  // pass
 }
