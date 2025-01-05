@@ -46,12 +46,13 @@ target_link_options(TestRunner PRIVATE
 
 # -----------------------------------------------------------------------------
 
-add_test(
-    NAME "log_trace() message format"
-    COMMAND TestRunner "log_trace() message format"
+# Add tests
+
+set(testList
+    "log_trace message format"
+    "log_debug message format"
 )
 
-add_test(
-    NAME "log_debug() message format"
-    COMMAND TestRunner "log_debug() message format"
-)
+foreach(testItem IN LISTS testList)
+    add_test(NAME ${testItem} COMMAND TestRunner ${testItem})
+endforeach()

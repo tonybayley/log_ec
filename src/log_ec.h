@@ -39,6 +39,15 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef OVERRIDE_PRINTF
+/* To override the standard library functions printf() and vprintf() with 
+ * user-defined functions, define the macro OVERRIDE_PRINTF and define the
+ * macros CONSOLE_PRINTF() and CONSOLE_VPRINTF() in the header file
+ * console_printf.h.
+ */
+#include "console_printf.h"
+#endif
+
 /* Public macro definitions -------------------------------------------------*/
 
 #define FILE_NAME ( strrchr( __FILE__, '/' ) ? strrchr( __FILE__, '/' ) + 1 : __FILE__ )
@@ -58,7 +67,7 @@ extern "C" {
 #define LOG_USE_CALLBACKS ( LOG_MAX_CALLBACKS > 0U )
 
 #ifndef CONSOLE_PRINTF
-#define CONSOLE_PRINTF( ... ) printf( __VA_ARGS__ )  /* Default: use printf() to write log message prefix to the console */
+#define CONSOLE_PRINTF( FMT, ... ) printf( FMT, __VA_ARGS__ )  /* Default: use printf() to write log message prefix to the console */
 #endif
 
 #ifndef CONSOLE_VPRINTF

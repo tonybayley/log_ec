@@ -9,7 +9,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/test/TestRunner",
-        "args": ["test_log_debug_messageFormat"],
+        "args": ["log_debug message format"],
         "stopAtEntry": false,
         "cwd": "${fileDirname}",
         "environment": [],

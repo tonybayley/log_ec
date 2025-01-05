@@ -2,17 +2,14 @@
 
 A simple logging library for embedded C.
 
-This library is derived from the _rxi_ logging library https://github.com/rxi/log.c.
-However, I have modified the library to make it more suitable for resource-limited 
-embedded systems, and to suit my personal preferences. Log messages are written 
-to the console. Optionally, callback functions may be registered to perform 
-other logging actions such as writing logs to flash memory or publishing logs 
-via a network interface.
+Log messages are written to the console. Optionally, callback functions may be 
+registered to perform other logging actions such as writing logs to flash memory 
+or publishing logs via a network interface.
 
-By default, the _printf()_ function is used to write log messages to the console.
-On embedded systems, the _printf()_ function is typically configured to print to 
+By default, the `printf()` function is used to write log messages to the console.
+On embedded systems, the `printf()` function is typically configured to print to 
 a UART, USB virtual COM port or J-Link RTT channel that can be viewed on an 
-attached PC. However, systems that do not support _printf()_ can still use the
+attached PC. However, systems that do not support `printf()` can still use the
 _log\_ec_ library as described in the section titled 
 ["Using custom console printing macros"](https://github.com/tonybayley/log_ec#using-custom-console-printing-macros).
 
@@ -122,7 +119,7 @@ parameters are:
 
 The registered callback function will be invoked when a log message is written 
 at a log level equal to or greater than `cbLogLevel`. Callback functions shall 
-implement the _tLog\_callbackFn_ function signature.
+implement the `tLog_callbackFn` function signature.
 
 Logging callback functions enable target-specific logging features to be
 implemented, such as writing error logs to a flash filesystem, or publishing
@@ -143,7 +140,7 @@ supply a lock function to prevent the messages becoming interleaved. The lock
 function is configured by calling `log_set_lock_func()`, with the lock function 
 pointer as parameter `lockFn`. Optionally, a user data object (e.g. a mutex 
 handle) may be specified via parameter `lockData`. The lock function shall 
-implement the _tLog\_lockFn_ function signature.
+implement the `tLog_lockFn` function signature.
 
 The user-supplied lock function is called with `lock=true` to acquire a mutex 
 before writing log messages to the console, and is called again with `lock=false`
@@ -256,11 +253,25 @@ to the `LOG_MAX_CALLBACKS` preprocessor macro.
 ### Using custom console printing macros
 
 By default, log messages are printed to the console using the C standard library
-_printf()_ and _vprintf()_ functions. However, if the build system defines macros 
-_CONSOLE\_PRINTF()_ and _CONSOLE\_VPRINTF()_, then those macros will be used 
-instead of _printf()_ and _vprintf()_. That enables resource-constrained embedded 
-systems that do not implement _printf()_ to write log messages using custom 
-functions that write directly to a UART, etc.
+functions `printf()` and `vprintf()`. However, these functions can be substituted
+by user defined functions, to enable resource-constrained embedded systems that
+do not implement `printf()` to write log messages using custom functions that 
+write directly to a UART, etc.
+
+To override the standard library functions `printf()` and `vprintf()` with 
+user-defined functions, define the macro `OVERRIDE_PRINTF` within the build 
+system. Then define the macros `CONSOLE_PRINTF()` and `CONSOLE_VPRINTF()` in the 
+header file _console\_printf.h_. The `CONSOLE_PRINTF()` and `CONSOLE_VPRINTF()`
+macros will be used instead of `printf()` and `vprintf()` respectively.
+
+To see an example, take a look at the unit test application in this git 
+repository. `printf()` and `vprintf()` are overridden by user-defined functions 
+`testPrintf()` and `testVprintf()` that write log messages to a buffer. That 
+enables the test runner to inspect the log messages to verify that they contain 
+the expected text. The macro `OVERRIDE_PRINTF` is defined by the CMake build 
+system in [CMakeLists.txt](https://github.com/tonybayley/log_ec/blob/main/CMakeLists.txt#L30).
+The macros `CONSOLE_PRINTF()` and `CONSOLE_VPRINTF()` are define in the header 
+file [test/console_printf.h](https://github.com/tonybayley/log_ec/blob/main/test/console_printf.h#L39-L55).
 
 
 ## Building the log_ec library with CMake

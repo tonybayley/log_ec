@@ -25,5 +25,12 @@ target_sources(log_ec INTERFACE
 # -----------------------------------------------------------------------------
 
 # Unit tests
-include(CTest)
-add_subdirectory(test)
+if(PROJECT_IS_TOP_LEVEL)
+    # Override printf() and vprintf() with functions that write log messages to a test buffer, for unit tests
+    target_compile_definitions(log_ec INTERFACE OVERRIDE_PRINTF)
+    target_include_directories(log_ec INTERFACE test)
+
+    # Build TestRunner for unit tests
+    include(CTest)
+    add_subdirectory(test)
+endif()
