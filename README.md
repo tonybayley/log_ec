@@ -293,9 +293,9 @@ and are built and run using the following commands in the root directory.
 
 ```bash
 rm -rf build
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-ctest --test-dir build -C Release
+cmake -B build
+cmake --build build
+ctest --test-dir build
 ```
 
 

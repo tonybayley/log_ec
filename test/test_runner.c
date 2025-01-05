@@ -25,8 +25,7 @@
  * IN THE SOFTWARE.
  */
 
-#include <stdlib.h>
-#include <errno.h>
+#include <string.h>
 #include "log_ec.h"
 
 
@@ -38,13 +37,20 @@
 /* Private type definitions -------------------------------------------------*/
 
 /**
- * @brief Test function pointer type
+ * @brief Test function pointer type.
  * 
  * @return 0 if the test passes
  *         1 if the test fails
  */
 typedef int (*tTestFunction)( void );
 
+/**
+ * @brief Test item type.
+ */
+typedef struct {
+    const char* testName;
+    tTestFunction testFunction;
+} tTestItem;
 
 /* Private function declarations --------------------------------------------*/
 
@@ -57,11 +63,12 @@ static int test_log_debug_messageFormat( void );
 /**
  * @brief List of unit test functions
  */
-tTestFunction pTest[] = {
-    test_log_trace_messageFormat,
-    test_log_debug_messageFormat
+tTestItem testList[] = {
+    { "log_trace() message format", test_log_trace_messageFormat },
+    { "log_debug() message format", test_log_debug_messageFormat },
 };
 
+const size_t testListLength = sizeof( testList ) / sizeof( testList[0U] );
 
 /* Public function definitions ----------------------------------------------*/
 
@@ -71,7 +78,7 @@ tTestFunction pTest[] = {
  * The test runner is invoked on the command line, and is passed a single 
  * integer that specifies the test number to run. For example:
  * 
- *     ./TestRunner 5
+ *     ./TestRunner test_log_debug_messageFormat
  * 
  * @param argc Number of command line arguments
  * @param argv Command line argument array
@@ -83,11 +90,16 @@ int main(int argc, char* argv[])
     int result = 1;  // test failed
     if( EXPECTED_NUMBER_OF_ARGS == argc )
     {
-        errno = 0;
-        long testNumber = strtol( argv[1U], NULL, 10 );
-        if( ( errno == 0 ) && ( testNumber < sizeof(pTest) / sizeof(pTest[0U]) ) )
+        bool testComplete = false;
+        const char* testName = argv[1U];
+        for( size_t i = 0U; ( i < testListLength ) && ( !testComplete ); i++ )
         {
-            result = pTest[testNumber]();
+            if( 0 == strcmp( testName, testList[i].testName ) )
+            {
+                // run the test with the specified funcion name
+                result = testList[i].testFunction();
+                testComplete = true;
+            }
         }
     }
     return result;

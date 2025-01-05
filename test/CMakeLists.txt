@@ -1,13 +1,57 @@
-# Unit tests
+# Setup compiler settings
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+enable_language(C)
+
+# Define the default build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+# Test runner application
 add_executable(TestRunner test_runner.c)
 target_link_libraries(TestRunner PRIVATE log_ec)
 
+target_compile_options(TestRunner PRIVATE
+    # compiler warnings
+    -Wuninitialized
+    -Wundef
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+    # sanitizers
+    -fsanitize=address
+    -fsanitize=leak
+    -fsanitize=undefined
+    -fno-sanitize-recover
+    -fno-omit-frame-pointer
+    -static-libasan
+    # code coverage
+    --coverage
+)
+
+target_link_options(TestRunner PRIVATE
+    # sanitizers
+    -fsanitize=address
+    -fsanitize=leak
+    -fsanitize=undefined
+    -fno-sanitize-recover
+    -fno-omit-frame-pointer
+    -static-libasan
+    # code coverage
+    --coverage
+)
+
+# -----------------------------------------------------------------------------
+
 add_test(
-    NAME "test_log_trace_messageFormat"
-    COMMAND TestRunner 0
+    NAME "log_trace() message format"
+    COMMAND TestRunner "log_trace() message format"
 )
 
 add_test(
-    NAME "test_log_debug_messageFormat"
-    COMMAND TestRunner 1
+    NAME "log_debug() message format"
+    COMMAND TestRunner "log_debug() message format"
 )
