@@ -79,7 +79,7 @@ static const char *level_colors[] = {
 /* Private function declarations --------------------------------------------*/
 
 static uint32_t getTimestamp( void );
-static void log_print( tLog_event* ev );
+static int log_print( tLog_event* ev );
 static bool lock( void );
 static bool unlock( void );
 
@@ -100,17 +100,19 @@ static uint32_t getTimestamp( void )
  * @brief Write log event data to the console.
  * 
  * @param ev Log event data.
+ * @return Number of characters printed if successful. On error, it returns a negative value.
  */
-static void log_print( tLog_event* ev )
+static int log_print( tLog_event* ev )
 {
 #if LOG_USE_COLOR
-    CONSOLE_PRINTF( "%8" PRIu32 " %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
+    int printfResult = CONSOLE_PRINTF( "%8" PRIu32 " %s%-5s\x1b[0m \x1b[90m%s:%d:\x1b[0m ",
             ev->time, level_colors[ev->level], level_strings[ev->level], ev->file, ev->line );  /* message prefix: colour */
 #else
-    CONSOLE_PRINTF( "%8" PRIu32 " %-5s %s:%d: ",
+    int printfResult = CONSOLE_PRINTF( "%8" PRIu32 " %-5s %s:%d: ",
              ev->time, level_strings[ev->level], ev->file, ev->line );  /* message prefix: monochrome */
 #endif
-    CONSOLE_VPRINTF(ev->fmt, ev->ap);  /* message body */
+    int vprintfResult = CONSOLE_VPRINTF(ev->fmt, ev->ap);  /* message body */
+    return ( ( printfResult >= 0 ) && ( vprintfResult >= 0 ) ) ? ( printfResult + vprintfResult ) : -1;
 }
 
 static bool lock( void )
@@ -195,8 +197,9 @@ void log_unregisterCallbackFn( tLog_callbackFn cbFn )
 }
 #endif
 
-void log_log( int level, const char* file, int line, const char* fmt, ... )
+int log_log( int level, const char* file, int line, const char* fmt, ... )
 {
+    int result = 0;
     tLog_event ev = {
         .level = level,
         .file  = file,
@@ -213,7 +216,7 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
         if( !logConfig.consoleLoggingDisabled && ( level >= logConfig.level ) )
         {
             va_start( ev.ap, fmt );
-            log_print( &ev );
+            result = log_print( &ev );
             va_end( ev.ap );
         }
 
@@ -233,4 +236,5 @@ void log_log( int level, const char* file, int line, const char* fmt, ... )
 
         unlock();
     }
+    return result;
 }

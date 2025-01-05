@@ -212,8 +212,9 @@ void log_setLockFn( tLog_lockFn lockFn, void* lockData );
  * @param line Source code line number that is printing the log message.
  * @param fmt printf format string.
  * @param ... printf variadic arguments.
+ * @return Number of characters printed if successful. On error, it returns a negative value.
  */
-void log_log( int level, const char* file, int line, const char* fmt, ... );
+int log_log( int level, const char* file, int line, const char* fmt, ... );
 
 #ifdef __cplusplus
 }

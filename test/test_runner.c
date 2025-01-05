@@ -40,13 +40,20 @@
 #define NEXT_LINE ( __LINE__ + 1 )          /* Line number of the next line */
 
 /**
- * @brief Compare a log message with the expected message
+ * @brief Compare a log message string with the expected message string.
  * 
  * @return 0 if the messages are identical, a non-zero value if the messages are different.
  */
-#define TEST_ASSERT_EQUAL( EXPECTED_MESSAGE, MESSAGE ) \
+#define TEST_ASSERT_EQUAL_STRING( EXPECTED_MESSAGE, MESSAGE ) \
         strcmp( EXPECTED_MESSAGE, MESSAGE )
 
+/**
+ * @brief Compare two integers.
+ * 
+ * @return 0 if the integers are identical, a non-zero value if the integers are different.
+ */
+#define TEST_ASSERT_EQUAL_INT( EXPECTED_NUM, NUM ) \
+        ( EXPECTED_NUM - NUM )
 
 /* Private type definitions -------------------------------------------------*/
 
@@ -248,8 +255,10 @@ static int test_log_trace_messageFormat( void )
     int testValue = 48;
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
-    log_trace( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_trace( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -263,8 +272,10 @@ static int test_log_debug_messageFormat( void )
     unsigned int testValue = 0xFACE;
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 DEBUG test_runner.c:%u: testValue is 0xFACE\n", NEXT_LINE );
-    log_debug( "testValue is 0x%04X\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_debug( "testValue is 0x%04X\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -278,8 +289,10 @@ static int test_log_info_messageFormat( void )
     const char* testValue = "\"Hello world!\"";
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 INFO  test_runner.c:%u: testValue is \"Hello world!\"\n", NEXT_LINE );
-    log_info( "testValue is %s\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_info( "testValue is %s\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -293,8 +306,10 @@ static int test_log_warn_messageFormat( void )
     unsigned int testValue = -2001;
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 WARN  test_runner.c:%u: testValue is -2001\n", NEXT_LINE );
-    log_warn( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_warn( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -309,8 +324,10 @@ static int test_log_error_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     setExpectedTimestamp( 0U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
     sprintf( expectedLogMessage, "       0 ERROR test_runner.c:%u: testValue is 48\n", NEXT_LINE );
-    log_error( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_error( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -325,8 +342,10 @@ static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     setExpectedTimestamp( 4294967295U );  /* 10 digit timestamp causes width of 8-character timestamp field to increase */
     sprintf( expectedLogMessage, "4294967295 FATAL test_runner.c:%u: testValue is 77\n", NEXT_LINE );
-    log_fatal( "testValue is %u\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_fatal( "testValue is %u\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -343,8 +362,10 @@ static int test_log_info_withLockFreeShallWriteLogMessage( void )
     char expectedLogMessage[80] = { '\0'};
     log_setLockFn( setLockState, &m_logIsLocked );
     sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
-    log_trace( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    int msgLen = log_trace( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
 
@@ -359,9 +380,11 @@ static int test_log_info_withLockTakenShallNotWriteLogMessage( void )
 {
     int testValue = 48;
     char expectedLogMessage[80] = { '\0'};
+    int expectedMsgLen = 0;
     log_setLockFn( setLockState, &m_logIsLocked );
     m_logIsLocked = true;  /* Simulate lock acquisition by another thread */
-    log_trace( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );  /* empty message buffer */
+    int msgLen = log_trace( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );  /* empty message buffer */
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }

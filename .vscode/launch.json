@@ -9,7 +9,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/test/TestRunner",
-        "args": ["log_fatal message format with 10 digit timestamp"],
+        "args": ["log message shall be written when lock is free"],
         "stopAtEntry": false,
         "cwd": "${fileDirname}",
         "environment": [],
