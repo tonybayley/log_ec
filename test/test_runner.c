@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>
 #include "log_ec.h"
 
@@ -69,38 +70,47 @@ typedef struct {
 
 static void setExpectedTimestamp( uint32_t expectedTimestamp );
 static uint32_t getTimestamp( void );
+static bool setLockState( bool lock, void* lockData );
 static void clearLogMessage( void );
+
 static int test_log_trace_messageFormat( void );
 static int test_log_debug_messageFormat( void );
 static int test_log_info_messageFormat( void );
 static int test_log_warn_messageFormat( void );
 static int test_log_error_messageFormat( void );
 static int test_log_fatal_with10DigitTimestamp_messageFormat( void );
+static int test_log_info_withLockFreeShallWriteLogMessage( void );
+static int test_log_info_withLockTakenShallNotWriteLogMessage( void );
 
 
 /* Private variable definitions ---------------------------------------------*/
 
 /** @brief List of unit test functions */
-tTestItem testList[] = {
+tTestItem m_testList[] = {
     { "log_trace message format", test_log_trace_messageFormat },
     { "log_debug message format", test_log_debug_messageFormat },
     { "log_info message format", test_log_info_messageFormat },
     { "log_warn message format", test_log_warn_messageFormat },
     { "log_error message format", test_log_error_messageFormat },
     { "log_fatal message format with 10 digit timestamp", test_log_fatal_with10DigitTimestamp_messageFormat },
+    { "log message shall be written when lock is free", test_log_info_withLockFreeShallWriteLogMessage },
+    { "log message shall not be written when lock is taken", test_log_info_withLockTakenShallNotWriteLogMessage }
 };
 
 /** Number of test cases */
-const size_t testListLength = sizeof( testList ) / sizeof( testList[0U] );
+const size_t m_testListLength = sizeof( m_testList ) / sizeof( m_testList[0U] );
 
 /** Expected timestamp value */
-uint32_t timestamp = 0U;
+uint32_t m_timestamp = 0U;
 
 /** Test buffer to which log messages are written */
-char logMessage[TEST_BUFFER_SIZE] = { '\0'};
+char m_logMessage[TEST_BUFFER_SIZE] = { '\0'};
 
 /** Test buffer write index */
-size_t logMessageWriteIndex = 0U;
+size_t m_logMessageWriteIndex = 0U;
+
+/** Mock mutex state variable */
+bool m_logIsLocked = false;
 
 /* Public function definitions ----------------------------------------------*/
 
@@ -124,9 +134,9 @@ int main(int argc, char* argv[])
     {
         bool testComplete = false;
         const char* testName = argv[1U];
-        for( size_t i = 0U; ( i < testListLength ) && ( !testComplete ); i++ )
+        for( size_t i = 0U; ( i < m_testListLength ) && ( !testComplete ); i++ )
         {
-            if( 0 == strcmp( testName, testList[i].testName ) )
+            if( 0 == strcmp( testName, m_testList[i].testName ) )
             {
                 // test setup
                 log_setTimestampFn( getTimestamp );
@@ -134,7 +144,7 @@ int main(int argc, char* argv[])
                 clearLogMessage();
 
                 // run the test with the specified funcion name
-                result = testList[i].testFunction();
+                result = m_testList[i].testFunction();
                 testComplete = true;
             }
         }
@@ -146,18 +156,18 @@ int testPrintf( const char* format, ...)
 {
     va_list arg;
     va_start( arg, format );
-    size_t freeSpace = TEST_BUFFER_SIZE - logMessageWriteIndex;
-    int bytesWritten = vsnprintf( &logMessage[logMessageWriteIndex], freeSpace , format, arg );
-    logMessageWriteIndex += bytesWritten;
+    size_t freeSpace = TEST_BUFFER_SIZE - m_logMessageWriteIndex;
+    int bytesWritten = vsnprintf( &m_logMessage[m_logMessageWriteIndex], freeSpace , format, arg );
+    m_logMessageWriteIndex += bytesWritten;
     va_end( arg );
     return bytesWritten;
 }
 
 int testVprintf( const char* format, va_list arg)
 {
-    size_t freeSpace = TEST_BUFFER_SIZE - logMessageWriteIndex;
-    int bytesWritten = vsnprintf( &logMessage[logMessageWriteIndex], freeSpace, format, arg );
-    logMessageWriteIndex += bytesWritten;
+    size_t freeSpace = TEST_BUFFER_SIZE - m_logMessageWriteIndex;
+    int bytesWritten = vsnprintf( &m_logMessage[m_logMessageWriteIndex], freeSpace, format, arg );
+    m_logMessageWriteIndex += bytesWritten;
     return bytesWritten;
 }
 
@@ -171,7 +181,7 @@ int testVprintf( const char* format, va_list arg)
  */
 static void setExpectedTimestamp( uint32_t expectedTimestamp )
 {
-    timestamp = expectedTimestamp;
+    m_timestamp = expectedTimestamp;
 }
 
 /**
@@ -181,7 +191,40 @@ static void setExpectedTimestamp( uint32_t expectedTimestamp )
  */
 static uint32_t getTimestamp( void )
 {
-    return timestamp;
+    return m_timestamp;
+}
+
+
+/**
+ * @brief Log lock function.
+ * 
+ * This function mocks a mutex for unit testing. When the lock function is 
+ * called with lock=true, a mutex is acquired to prevent any other threads or 
+ * RTOS tasks from writing log messages. When the lock function is called with 
+ * lock=false, the mutex is released to allow other threads to write log 
+ * messages.
+ * 
+ * @param lock true to acquire the mutex that enables printing of log messages, false to release the mutex.
+ * @param lockData Pointer to the mock mutex state variable.
+ * 
+ * @return true if the mutex was successfully acquired or released, or false on failure.
+ */
+static bool setLockState( bool lock, void* lockData )
+{
+    bool* pLocked = lockData;
+    bool success = true;
+    if( lock )
+    {
+        /* request to acquire lock */
+        success = !(*pLocked);  /* fail to acquire the lock if it is already taken */
+        *pLocked = true;
+    }
+    else
+    {
+        /* release lock */
+        *pLocked = false;
+    }
+    return success;
 }
 
 /**
@@ -189,8 +232,8 @@ static uint32_t getTimestamp( void )
  */
 static void clearLogMessage( void )
 {
-    memset( logMessage, 0, TEST_BUFFER_SIZE );
-    logMessageWriteIndex = 0U;
+    memset( m_logMessage, 0, TEST_BUFFER_SIZE );
+    m_logMessageWriteIndex = 0U;
 }
 
 /* Test cases ---------------------------------------------------------------*/
@@ -206,7 +249,7 @@ static int test_log_trace_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
     log_trace( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
     return result;
 }
 
@@ -221,7 +264,7 @@ static int test_log_debug_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 DEBUG test_runner.c:%u: testValue is 0xFACE\n", NEXT_LINE );
     log_debug( "testValue is 0x%04X\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
     return result;
 }
 
@@ -236,7 +279,7 @@ static int test_log_info_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 INFO  test_runner.c:%u: testValue is \"Hello world!\"\n", NEXT_LINE );
     log_info( "testValue is %s\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
     return result;
 }
 
@@ -251,7 +294,7 @@ static int test_log_warn_messageFormat( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "   12345 WARN  test_runner.c:%u: testValue is -2001\n", NEXT_LINE );
     log_warn( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
     return result;
 }
 
@@ -267,7 +310,7 @@ static int test_log_error_messageFormat( void )
     setExpectedTimestamp( 0U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
     sprintf( expectedLogMessage, "       0 ERROR test_runner.c:%u: testValue is 48\n", NEXT_LINE );
     log_error( "testValue is %d\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
     return result;
 }
 
@@ -283,6 +326,42 @@ static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
     setExpectedTimestamp( 4294967295U );  /* 10 digit timestamp causes width of 8-character timestamp field to increase */
     sprintf( expectedLogMessage, "4294967295 FATAL test_runner.c:%u: testValue is 77\n", NEXT_LINE );
     log_fatal( "testValue is %u\n", testValue );
-    int result = TEST_ASSERT_EQUAL( expectedLogMessage, logMessage );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    return result;
+}
+
+
+/**
+ * @brief Verify the that writing of a log_info() message succeeds when the lock 
+ *        is free and can be acquired by the lock function.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_info_withLockFreeShallWriteLogMessage( void )
+{
+    int testValue = 48;
+    char expectedLogMessage[80] = { '\0'};
+    log_setLockFn( setLockState, &m_logIsLocked );
+    sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
+    log_trace( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );
+    return result;
+}
+
+
+/**
+ * @brief Verify the that writing of a log_info() message fails when the lock 
+ *        is taken and cannot be acquired by the lock function.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_info_withLockTakenShallNotWriteLogMessage( void )
+{
+    int testValue = 48;
+    char expectedLogMessage[80] = { '\0'};
+    log_setLockFn( setLockState, &m_logIsLocked );
+    m_logIsLocked = true;  /* Simulate lock acquisition by another thread */
+    log_trace( "testValue is %d\n", testValue );
+    int result = TEST_ASSERT_EQUAL( expectedLogMessage, m_logMessage );  /* empty message buffer */
     return result;
 }

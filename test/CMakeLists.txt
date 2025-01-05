@@ -55,6 +55,8 @@ set(testList
     "log_warn message format"
     "log_error message format"
     "log_fatal message format with 10 digit timestamp"
+    "log message shall be written when lock is free"
+    "log message shall not be written when lock is taken"
 )
 
 foreach(testItem IN LISTS testList)
