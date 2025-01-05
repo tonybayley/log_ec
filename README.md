@@ -59,9 +59,9 @@ console, prefixed with a timestamp, logging level, filename and line number:
 
 ## Logging API functions
 
-### log_set_level( int level )
+### log_setLevel( int level )
 
-The logging level is set with the `log_set_level()` function. `LOG_TRACE` is the
+The logging level is set with the `log_setLevel()` function. `LOG_TRACE` is the
 lowest (most detailed) logging level and `LOG_FATAL` is the highest (least 
 detailed) logging level. Only log messages at or above the currently set logging 
 level are written to the console. By default the logging level is initialised to 
@@ -81,9 +81,9 @@ If logging has previously been disabled by calling `log_off()`, it can be
 enabled again by calling `log_on()`.
 
 
-### log_set_timestamp_func( tLog_timestampFn timestampFn )
+### log_setTimestampFn( tLog_timestampFn timestampFn )
 
-Configure a function to generate timestamps by calling `log_set_timestamp_func()`.
+Configure a function to generate timestamps by calling `log_setTimestampFn()`.
 The timestamp function shall return unsigned integer values (uint32_t). The 
 time units are user-defined. As an example, the following code-snippet shows how 
 to configure timestamps in units of milliseconds on a FreeRTOS based system:
@@ -102,15 +102,15 @@ int main(void)
 {
     /* initialise system clocks and hardware */
     ...
-    log_set_timestamp_func( getTimestamp );  // called once only at boot-time, to register the timestamp function
+    log_setTimestampFn( getTimestamp );  // called once only at boot-time, to register the timestamp function
 ```
 
 
-### log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+### log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 
 If the preprocessor macro `LOG_MAX_CALLBACKS` is set to a non-zero positive 
 integer, then up to `LOG_MAX_CALLBACKS` logging callback functions can be 
-registered by calling the `log_register_callback_func()` function. The function 
+registered by calling the `log_registerCallbackFn()` function. The function 
 parameters are:
 
 - **cbFn**: Logging callback function pointer.
@@ -126,18 +126,18 @@ implemented, such as writing error logs to a flash filesystem, or publishing
 log messages via an MQTT broker.
 
 
-### log_unregister_callback_func( tLog_callbackFn cbFn )
+### log_unregisterCallbackFn( tLog_callbackFn cbFn )
 
 Unregister a previously-registered logging callback function. After unregistering 
 a callback function, that function will no longer be invoked when log messages 
 are written.
 
 
-### log_set_lock_func( tLog_lockFn lockFn, void* lockData )
+### log_setLockFn( tLog_lockFn lockFn, void* lockData )
 
 If log messages are written from multiple threads or RTOS tasks, the user can
 supply a lock function to prevent the messages becoming interleaved. The lock
-function is configured by calling `log_set_lock_func()`, with the lock function 
+function is configured by calling `log_setLockFn()`, with the lock function 
 pointer as parameter `lockFn`. Optionally, a user data object (e.g. a mutex 
 handle) may be specified via parameter `lockData`. The lock function shall 
 implement the `tLog_lockFn` function signature.
@@ -221,7 +221,7 @@ int main( void )
         log_fatal( "Failed to create logMutex\n" );
         Error_Handler();
     }
-    log_set_lock_func( logLockFunction, NULL );
+    log_setLockFn( logLockFunction, NULL );
 ```
 
 

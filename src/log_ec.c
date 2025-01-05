@@ -136,18 +136,18 @@ static bool unlock( void )
 
 /* Public function definitions ----------------------------------------------*/
 
-void log_set_lock_func( tLog_lockFn lockFn, void* lockData )
+void log_setLockFn( tLog_lockFn lockFn, void* lockData )
 {
     logConfig.lockFn = lockFn;
     logConfig.lockData = lockData;
 }
 
-void log_set_timestamp_func( tLog_timestampFn timestampFn )
+void log_setTimestampFn( tLog_timestampFn timestampFn )
 {
     logConfig.timestampFn = timestampFn;
 }
 
-void log_set_level( int level )
+void log_setLevel( int level )
 {
     logConfig.level = level;
 }
@@ -163,10 +163,10 @@ void log_on( void )
 }
 
 #if LOG_USE_CALLBACKS
-bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
+bool log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 {
     bool registered = false;
-    log_unregister_callback_func( cbFn );  /* remove existing registration, if any, to prevent duplicates */
+    log_unregisterCallbackFn( cbFn );  /* remove existing registration, if any, to prevent duplicates */
 
     for( size_t i = 0U; ( !registered ) && ( i < LOG_MAX_CALLBACKS); i++ )
     {
@@ -180,7 +180,7 @@ bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLe
     return registered;
 }
 
-void log_unregister_callback_func( tLog_callbackFn cbFn )
+void log_unregisterCallbackFn( tLog_callbackFn cbFn )
 {
     bool finished = false;
     for( size_t i = 0U; ( !finished ) && ( i < LOG_MAX_CALLBACKS ); i++ )

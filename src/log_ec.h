@@ -147,7 +147,7 @@ typedef enum {
  * 
  * @param level Currently set logging level.
  */
-void log_set_level( int level );
+void log_setLevel( int level );
 
 /**
  * @brief Disable the printing of log messages to the console.
@@ -173,7 +173,7 @@ void log_on( void );
  *
  * @return true on success, or false on failure (i.e. if the maximum number of callback functions has been exceeded).
  */
-bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
+bool log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
 
 /**
  * @brief Unegister a logging callback function.
@@ -182,7 +182,7 @@ bool log_register_callback_func( tLog_callbackFn cbFn, void* cbData, int cbLogLe
  *
  * @param cbFn Logging callback function pointer.
  */
-void log_unregister_callback_func( tLog_callbackFn cbFn );
+void log_unregisterCallbackFn( tLog_callbackFn cbFn );
 #endif
 
 /**
@@ -191,7 +191,7 @@ void log_unregister_callback_func( tLog_callbackFn cbFn );
  * @param timestampFn Timestamp function.
  * @return int 
  */
-void log_set_timestamp_func( tLog_timestampFn timestampFn );
+void log_setTimestampFn( tLog_timestampFn timestampFn );
 
 /**
  * @brief Register a logging lock function.
@@ -202,7 +202,7 @@ void log_set_timestamp_func( tLog_timestampFn timestampFn );
  * @param lockFn Lock function.
  * @param lockData Lock user data, if required, or NULL if not used.
  */
-void log_set_lock_func( tLog_lockFn lockFn, void* lockData );
+void log_setLockFn( tLog_lockFn lockFn, void* lockData );
 
 /**
  * @brief Main logging function.

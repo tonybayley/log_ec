@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
             if( 0 == strcmp( testName, testList[i].testName ) )
             {
                 // test setup
-                log_set_timestamp_func( getTimestamp );
+                log_setTimestampFn( getTimestamp );
                 setExpectedTimestamp( DEFAULT_EXPECTED_TIMESTAMP );
                 clearLogMessage();
 
