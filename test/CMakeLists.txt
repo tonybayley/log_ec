@@ -4,10 +4,15 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 enable_language(C)
 
-# Define the default build type
+# These flags are used if cmake is called with -DCMAKE_BUILD_TYPE=Profile
+set(CMAKE_C_FLAGS_PROFILE "--coverage -g -O0")
+set(CMAKE_CXX_FLAGS_PROFILE "--coverage -g -O0")
+
+# Define the default build type for unit tests
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug")
+    set(CMAKE_BUILD_TYPE "Profile")
 endif()
+message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
 # Test runner application
 add_executable(TestRunner test_runner.c)
@@ -28,8 +33,6 @@ target_compile_options(TestRunner PRIVATE
     -fno-sanitize-recover
     -fno-omit-frame-pointer
     -static-libasan
-    # code coverage
-    --coverage
 )
 
 target_link_options(TestRunner PRIVATE
@@ -40,8 +43,6 @@ target_link_options(TestRunner PRIVATE
     -fno-sanitize-recover
     -fno-omit-frame-pointer
     -static-libasan
-    # code coverage
-    --coverage
 )
 
 # -----------------------------------------------------------------------------
@@ -70,8 +71,8 @@ LIST(LENGTH testList testListLen)
 foreach(testNumber RANGE 1 ${testListLen})
     MATH(EXPR listIndex "${testNumber} - 1")
     LIST(GET testList ${listIndex} testName)
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        # Generate code coverage report for Debug build
+    if(CMAKE_BUILD_TYPE STREQUAL "Profile")
+        # Generate test coverage report for Profile build
         add_test(NAME ${testName}
                 COMMAND bash -c " \
                     ${CMAKE_CURRENT_BINARY_DIR}/TestRunner \"${testName}\" && \
@@ -87,8 +88,8 @@ foreach(testNumber RANGE 1 ${testListLen})
     endif()
 endforeach()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # generate test coverage report
+if(CMAKE_BUILD_TYPE STREQUAL "Profile")
+    # Generate test coverage report for Profile build
     add_test(NAME "Test coverage report (build/test/coverage.html)"
             COMMAND bash -c "gcovr --root ${PROJECT_SOURCE_DIR} \
                                     --json-add-tracefile \"${CMAKE_CURRENT_BINARY_DIR}/test-*.json\" \
