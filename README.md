@@ -299,8 +299,15 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 ## Unit tests
 
-Unit tests are implemented in the file [**test/test_runner.c**](test/test_runner.c)
-and are built and run using the following commands in the root directory.
+The tools required to build and run the unit on a Linux host are GCC compiler, 
+CMake and GCOVR, which can be installed with the command:
+
+```bash
+sudo apt install build-essential cmake gcovr
+```
+
+Unit tests are implemented in the file [**test/test_runner.c**](test/test_runner.c).
+The tests are built and run using the following commands in the root directory.
 
 ```bash
 rm -rf build
@@ -308,6 +315,9 @@ cmake -B build
 cmake --build build
 ctest --test-dir build
 ```
+
+To view a detailed HTML test coverage report, open the file 
+[**build/test/coverage.html**](./build/test/coverage.html) in a web browser.
 
 
 ## License
