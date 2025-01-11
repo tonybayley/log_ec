@@ -311,7 +311,7 @@ The tests are built and run using the following commands in the root directory.
 
 ```bash
 rm -rf build
-cmake -B build
+cmake -B build -DLOG_MAX_CALLBACKS=2
 cmake --build build
 ctest --test-dir build
 ```
