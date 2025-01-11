@@ -14,6 +14,9 @@ target_compile_definitions(log_ec INTERFACE
 	LOG_USE_COLOR=${LOG_USE_COLOR}
 )
 
+message(STATUS "LOG_MAX_CALLBACKS=${LOG_MAX_CALLBACKS}")
+message(STATUS "LOG_USE_COLOR=${LOG_USE_COLOR}")
+
 target_include_directories(log_ec INTERFACE
     src
 )
