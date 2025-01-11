@@ -59,6 +59,13 @@ set(testList
     "log message shall not be written when lock is taken"
 )
 
-foreach(testItem IN LISTS testList)
-    add_test(NAME ${testItem} COMMAND TestRunner ${testItem})
+LIST(LENGTH testList testListLen)
+
+foreach(testNumber RANGE 1 ${testListLen})
+    MATH(EXPR listIndex "${testNumber} - 1")
+    LIST(GET testList ${listIndex} testItem)
+    message(STATUS "Configuring test ${testNumber}: item ${testItem}")
+    add_test(NAME ${testItem}
+             COMMAND TestRunner ${testItem}
+    )
 endforeach()
