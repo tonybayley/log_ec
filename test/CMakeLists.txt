@@ -57,6 +57,12 @@ set(testList
     "log_fatal message format with 10 digit timestamp"
     "log message shall be written when lock is free"
     "log message shall not be written when lock is taken"
+    "log_off shall disable printing of log messages"
+    "log_on shall enable printing of log messages"
+    "log message at level set by log_setLevel shall be printed"
+    "log message at higher level than set by log_setLevel shall be printed"
+    "log message at lower level than set by log_setLevel shall not be printed"
+    "When timestamp function is NULL the timestamp value is 0"
 )
 
 LIST(LENGTH testList testListLen)

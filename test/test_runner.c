@@ -88,6 +88,12 @@ static int test_log_error_messageFormat( void );
 static int test_log_fatal_with10DigitTimestamp_messageFormat( void );
 static int test_log_info_withLockFreeShallWriteLogMessage( void );
 static int test_log_info_withLockTakenShallNotWriteLogMessage( void );
+static int test_log_off( void );
+static int test_log_on( void );
+static int test_log_setLevel_equalLevelIsPrinted( void );
+static int test_log_setLevel_higherLevelIsPrinted( void );
+static int test_log_setLevel_lowerLevelIsNotPrinted( void );
+static int test_setTimestamp_null( void );
 
 
 /* Private variable definitions ---------------------------------------------*/
@@ -101,7 +107,13 @@ tTestItem m_testList[] = {
     { "log_error message format", test_log_error_messageFormat },
     { "log_fatal message format with 10 digit timestamp", test_log_fatal_with10DigitTimestamp_messageFormat },
     { "log message shall be written when lock is free", test_log_info_withLockFreeShallWriteLogMessage },
-    { "log message shall not be written when lock is taken", test_log_info_withLockTakenShallNotWriteLogMessage }
+    { "log message shall not be written when lock is taken", test_log_info_withLockTakenShallNotWriteLogMessage },
+    { "log_off shall disable printing of log messages", test_log_off },
+    { "log_on shall enable printing of log messages", test_log_on },
+    { "log message at level set by log_setLevel shall be printed", test_log_setLevel_equalLevelIsPrinted },
+    { "log message at higher level than set by log_setLevel shall be printed", test_log_setLevel_higherLevelIsPrinted },
+    { "log message at lower level than set by log_setLevel shall not be printed", test_log_setLevel_lowerLevelIsNotPrinted },
+    { "When timestamp function is NULL the timestamp value is 0", test_setTimestamp_null }
 };
 
 /** Number of test cases */
@@ -254,8 +266,11 @@ static int test_log_trace_messageFormat( void )
 {
     int testValue = 48;
     char expectedLogMessage[80] = { '\0'};
+
+    // UUT
     sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
     int msgLen = log_trace( "testValue is %d\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -271,8 +286,11 @@ static int test_log_debug_messageFormat( void )
 {
     unsigned int testValue = 0xFACE;
     char expectedLogMessage[80] = { '\0'};
+
+    // UUT
     sprintf( expectedLogMessage, "   12345 DEBUG test_runner.c:%u: testValue is 0xFACE\n", NEXT_LINE );
     int msgLen = log_debug( "testValue is 0x%04X\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -288,8 +306,11 @@ static int test_log_info_messageFormat( void )
 {
     const char* testValue = "\"Hello world!\"";
     char expectedLogMessage[80] = { '\0'};
+
+    //UUT
     sprintf( expectedLogMessage, "   12345 INFO  test_runner.c:%u: testValue is \"Hello world!\"\n", NEXT_LINE );
     int msgLen = log_info( "testValue is %s\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -305,8 +326,11 @@ static int test_log_warn_messageFormat( void )
 {
     unsigned int testValue = -2001;
     char expectedLogMessage[80] = { '\0'};
+
+    // UUT
     sprintf( expectedLogMessage, "   12345 WARN  test_runner.c:%u: testValue is -2001\n", NEXT_LINE );
     int msgLen = log_warn( "testValue is %d\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -323,8 +347,11 @@ static int test_log_error_messageFormat( void )
     int testValue = 48;
     char expectedLogMessage[80] = { '\0'};
     setExpectedTimestamp( 0U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
+
+    // UUT
     sprintf( expectedLogMessage, "       0 ERROR test_runner.c:%u: testValue is 48\n", NEXT_LINE );
     int msgLen = log_error( "testValue is %d\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -341,8 +368,11 @@ static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
     unsigned int testValue = 77U;
     char expectedLogMessage[80] = { '\0'};
     setExpectedTimestamp( 4294967295U );  /* 10 digit timestamp causes width of 8-character timestamp field to increase */
+
+    // UUT
     sprintf( expectedLogMessage, "4294967295 FATAL test_runner.c:%u: testValue is 77\n", NEXT_LINE );
     int msgLen = log_fatal( "testValue is %u\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -351,8 +381,8 @@ static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
 
 
 /**
- * @brief Verify the that writing of a log_info() message succeeds when the lock 
- *        is free and can be acquired by the lock function.
+ * @brief Verify that writing of a log_info() message succeeds when the lock is
+ *        free and can be acquired by the lock function.
  * 
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -361,8 +391,12 @@ static int test_log_info_withLockFreeShallWriteLogMessage( void )
     int testValue = 48;
     char expectedLogMessage[80] = { '\0'};
     log_setLockFn( setLockState, &m_logIsLocked );
+    m_logIsLocked = false;  /* lock is free */
+
+    // UUT
     sprintf( expectedLogMessage, "   12345 TRACE test_runner.c:%u: testValue is 48\n", NEXT_LINE );
     int msgLen = log_trace( "testValue is %d\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
@@ -371,8 +405,8 @@ static int test_log_info_withLockFreeShallWriteLogMessage( void )
 
 
 /**
- * @brief Verify the that writing of a log_info() message fails when the lock 
- *        is taken and cannot be acquired by the lock function.
+ * @brief Verify that writing of a log_info() message fails when the lock is
+ *        taken and cannot be acquired by the lock function.
  * 
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -383,8 +417,139 @@ static int test_log_info_withLockTakenShallNotWriteLogMessage( void )
     int expectedMsgLen = 0;
     log_setLockFn( setLockState, &m_logIsLocked );
     m_logIsLocked = true;  /* Simulate lock acquisition by another thread */
+
+    // UUT
     int msgLen = log_trace( "testValue is %d\n", testValue );
+
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );  /* empty message buffer */
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+
+/**
+ * @brief Verify that calling log_off() disables writing of log messages to the console.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_off( void )
+{
+    int testValue = 27;
+    char expectedLogMessage[80] = { '\0'};
+    int expectedMsgLen = 0;
+
+    // UUT
+    log_off();  /* disable printing of log messages to the console */
+    int msgLen = log_error( "testValue is %d\n", testValue );
+
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );    /* empty message buffer */
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief Verify that calling log_on() enables writing of log messages to the console.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_on( void )
+{
+    /* setup: call log_off() and verify that printing of log messages is disabled */
+    int result = test_log_off();
+
+    int testValue = 93;
+    char expectedLogMessage[80] = { '\0'};
+    setExpectedTimestamp( 13579U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
+
+    // UUT
+    log_on();
+    sprintf( expectedLogMessage, "   13579 ERROR test_runner.c:%u: testValue is 93\n", NEXT_LINE );
+    int msgLen = log_error( "testValue is %d\n", testValue );
+
+    result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief After calling log_setLevel( LOG_WARN ), calling log_warn() shall print log messages to the console.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_setLevel_equalLevelIsPrinted( void )
+{
+    unsigned int testValue = -2001;
+    char expectedLogMessage[80] = { '\0'};
+
+    // UUT
+    log_setLevel( LOG_WARN );  /* Set the logging level */
+    sprintf( expectedLogMessage, "   12345 WARN  test_runner.c:%u: testValue is -2001\n", NEXT_LINE );
+    int msgLen = log_warn( "testValue is %d\n", testValue );
+
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief After calling log_setLevel( LOG_WARN ), calling log_error() shall print log messages to the console.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_setLevel_higherLevelIsPrinted( void )
+{
+    int testValue = 48;
+    char expectedLogMessage[80] = { '\0'};
+
+    // UUT
+    log_setLevel( LOG_WARN );  /* Set the logging level */
+    setExpectedTimestamp( 0U );  /* Zero timestamp should be right-justified in the 8-character timestamp field */
+    sprintf( expectedLogMessage, "       0 ERROR test_runner.c:%u: testValue is 48\n", NEXT_LINE );
+    int msgLen = log_error( "testValue is %d\n", testValue );
+
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief After calling log_setLevel( LOG_WARN ), calling log_info() shall not print log messages to the console.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_log_setLevel_lowerLevelIsNotPrinted( void )
+{
+    char expectedLogMessage[80] = { '\0'};
+    int expectedMsgLen = 0;
+
+    // UUT
+    log_setLevel( LOG_WARN );  /* Set the logging level */
+    int msgLen = log_info( "This message is not expected to be printed\n" );
+
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );    /* empty message buffer */
+    result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief When the timestamp function is NULL, timestamp value is 0.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_setTimestamp_null( void )
+{
+    char expectedLogMessage[80] = { '\0'};
+
+    //UUT
+    log_setTimestampFn( NULL );
+    sprintf( expectedLogMessage, "       0 INFO  test_runner.c:%u: Message with zero timestamp\n", NEXT_LINE );
+    int msgLen = log_info( "Message with zero timestamp\n" );
+
+    int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
+    int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
     return result;
 }
