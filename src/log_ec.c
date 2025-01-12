@@ -168,7 +168,7 @@ void log_on( void )
 bool log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel )
 {
     bool registered = false;
-    log_unregisterCallbackFn( cbFn );  /* remove existing registration, if any, to prevent duplicates */
+    log_unregisterCallbackFn( cbFn, cbData );  /* remove existing registration, if any, to prevent duplicates */
 
     for( size_t i = 0U; ( !registered ) && ( i < LOG_MAX_CALLBACKS); i++ )
     {
@@ -182,12 +182,12 @@ bool log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel 
     return registered;
 }
 
-void log_unregisterCallbackFn( tLog_callbackFn cbFn )
+void log_unregisterCallbackFn( tLog_callbackFn cbFn, void* cbData )
 {
     bool finished = false;
     for( size_t i = 0U; ( !finished ) && ( i < LOG_MAX_CALLBACKS ); i++ )
     {
-        if( cbFn == logConfig.callbacks[i].cbFn )
+        if( ( cbFn == logConfig.callbacks[i].cbFn ) && ( cbData == logConfig.callbacks[i].cbData ) )
         {
             /* Delete the previously registered function pointer */
             logConfig.callbacks[i] = (tCallback) { NULL, NULL, LOG_TRACE };

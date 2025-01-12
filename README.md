@@ -126,11 +126,15 @@ implemented, such as writing error logs to a flash filesystem, or publishing
 log messages via an MQTT broker.
 
 
-### log_unregisterCallbackFn( tLog_callbackFn cbFn )
+### log_unregisterCallbackFn( tLog_callbackFn cbFn, void* cbData )
 
-Unregister a previously-registered logging callback function. After unregistering 
-a callback function, that function will no longer be invoked when log messages 
-are written.
+Unregister a previously-registered logging callback function and callback data.
+
+The same callback function may have been registered multiple times, with 
+different callback data objects. If that is the case, then only the callback 
+function instance with matching callback data will be unregistered. After 
+unregistering a callback function, that function will no longer be invoked when 
+log messages are written.
 
 
 ### log_setLockFn( tLog_lockFn lockFn, void* lockData )

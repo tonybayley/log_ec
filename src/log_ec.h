@@ -163,9 +163,10 @@ void log_on( void );
 /**
  * @brief Register a logging callback function.
  *
- * The registered callback function will be invoked when a log message is written at a log level equal to or greater 
- * than  cbLogLevel. The parameters passed to the callback function are the log message and metadata, along with the 
- * callback's associated data object cbData.
+ * The registered callback function will be invoked when a log message is 
+ * written at a log level equal to or greater than  cbLogLevel. The parameters 
+ * passed to the callback function are the log message and metadata, along with
+ * the callback's associated data object cbData.
  *
  * @param cbFn Logging callback function pointer.
  * @param cbData Logging callback data object pointer, if required, or NULL if not used.
@@ -176,13 +177,18 @@ void log_on( void );
 bool log_registerCallbackFn( tLog_callbackFn cbFn, void* cbData, int cbLogLevel );
 
 /**
- * @brief Unegister a logging callback function.
+ * @brief Unegister a previously registered logging callback function and callback data.
  *
- * After unregistering a callback function, that function will no longer be invoked when log messages are written.
+ * The same callback function may have been registered multiple times, with
+ * different callback data objects. If that is the case, then only the callback
+ * function instance with matching callback data will be unregistered. After
+ * unregistering a callback function, that function will no longer be invoked
+ * when log messages are written.
  *
  * @param cbFn Logging callback function pointer.
+ * @param cbData Logging callback data object pointer, or NULL.
  */
-void log_unregisterCallbackFn( tLog_callbackFn cbFn );
+void log_unregisterCallbackFn( tLog_callbackFn cbFn, void* cbData );
 #endif
 
 /**
