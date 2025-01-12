@@ -53,7 +53,7 @@
  * @return 0 if the integers are identical, a non-zero value if the integers are different.
  */
 #define TEST_ASSERT_EQUAL_INT( EXPECTED_NUM, NUM ) \
-        ( EXPECTED_NUM - NUM )
+        ( (int)( EXPECTED_NUM - NUM ) )
 
 /* Private type definitions -------------------------------------------------*/
 
@@ -73,12 +73,23 @@ typedef struct {
     tTestFunction testFunction;
 } tTestItem;
 
+/**
+ * @brief Type for storage of data passed to a callback function.
+ */
+typedef struct {
+    tLog_event ev;
+    void* data;
+    char logMessage[TEST_BUFFER_SIZE];
+} tCallbackData;
+
 /* Private function declarations --------------------------------------------*/
 
 static void setExpectedTimestamp( uint32_t expectedTimestamp );
 static uint32_t getTimestamp( void );
 static bool setLockState( bool lock, void* lockData );
 static void clearLogMessage( void );
+static void clearCallbackData( void );
+static void callback1Function( tLog_event* ev, void* cbData );
 
 static int test_log_trace_messageFormat( void );
 static int test_log_debug_messageFormat( void );
@@ -94,6 +105,7 @@ static int test_log_setLevel_equalLevelIsPrinted( void );
 static int test_log_setLevel_higherLevelIsPrinted( void );
 static int test_log_setLevel_lowerLevelIsNotPrinted( void );
 static int test_setTimestamp_null( void );
+static int test_callback1_logInfo( void );
 
 
 /* Private variable definitions ---------------------------------------------*/
@@ -113,7 +125,8 @@ tTestItem m_testList[] = {
     { "log message at level set by log_setLevel shall be printed", test_log_setLevel_equalLevelIsPrinted },
     { "log message at higher level than set by log_setLevel shall be printed", test_log_setLevel_higherLevelIsPrinted },
     { "log message at lower level than set by log_setLevel shall not be printed", test_log_setLevel_lowerLevelIsNotPrinted },
-    { "When timestamp function is NULL the timestamp value is 0", test_setTimestamp_null }
+    { "When timestamp function is NULL the timestamp value is 0", test_setTimestamp_null },
+    { "When callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1", test_callback1_logInfo }
 };
 
 /** Number of test cases */
@@ -130,6 +143,9 @@ size_t m_logMessageWriteIndex = 0U;
 
 /** Mock mutex state variable */
 bool m_logIsLocked = false;
+
+/** Data passed to callback1Function  */
+tCallbackData m_callback1Data;
 
 /* Public function definitions ----------------------------------------------*/
 
@@ -161,6 +177,7 @@ int main(int argc, char* argv[])
                 log_setTimestampFn( getTimestamp );
                 setExpectedTimestamp( DEFAULT_EXPECTED_TIMESTAMP );
                 clearLogMessage();
+                clearCallbackData();
 
                 // run the test with the specified funcion name
                 result = m_testList[i].testFunction();
@@ -253,6 +270,38 @@ static void clearLogMessage( void )
 {
     memset( m_logMessage, 0, TEST_BUFFER_SIZE );
     m_logMessageWriteIndex = 0U;
+}
+
+/**
+ * @brief Clear all callback data objects.
+ */
+static void clearCallbackData( void )
+{
+    memset( m_callback1Data.logMessage, 0, sizeof( m_callback1Data.logMessage ) );
+    m_callback1Data.data = NULL;
+    m_callback1Data.ev = (tLog_event) {
+        .file = NULL,
+        .fmt = NULL,
+        .level = 0,
+        .line = 0,
+        .time = 0U
+    };
+}
+
+/**
+ * @brief Callback function used for tests of logging callbacks.
+ * 
+ * @param ev Pointer to logging event data.
+ * @param cbData Pointer to the callback function's registered callback data object.
+ */
+static void callback1Function( tLog_event* ev, void* cbData )
+{
+    /* Get reference to the registered callback data object */
+    tCallbackData* callbackData = cbData;
+
+    callbackData->ev = *ev;
+    callbackData->data = cbData;
+    vsnprintf( callbackData->logMessage, sizeof( callbackData->logMessage ), ev->fmt, ev->ap );
 }
 
 /* Test cases ---------------------------------------------------------------*/
@@ -551,5 +600,30 @@ static int test_setTimestamp_null( void )
     int result = TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_logMessage );
     int expectedMsgLen = strlen( expectedLogMessage );
     result |= TEST_ASSERT_EQUAL_INT( expectedMsgLen, msgLen );
+    return result;
+}
+
+/**
+ * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
+ * to log_info() shall invoke callback1.
+ * 
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_callback1_logInfo( void )
+{
+    const char* testValue = "\"Hello world!\"";
+    char expectedLogMessage[80] = { '\0'};
+
+    //UUT
+    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
+    log_info( "testValue is %s\n", testValue );
+
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback1Data, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 5 ), m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback1Data.ev.file );
     return result;
 }

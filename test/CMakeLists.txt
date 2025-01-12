@@ -64,6 +64,9 @@ set(testList
     "log message at higher level than set by log_setLevel shall be printed"
     "log message at lower level than set by log_setLevel shall not be printed"
     "When timestamp function is NULL the timestamp value is 0"
+    "When callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1"
+    # "When callback1 is subscribed with level LOG_INFO then log_warn shall invoke callback1"
+    # "When callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1"
 )
 
 LIST(LENGTH testList testListLen)
