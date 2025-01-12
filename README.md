@@ -312,7 +312,7 @@ ctest --test-dir build
 ```
 
 To view a detailed HTML test coverage report, open the file 
-[**build/test/coverage.html**](./build/test/coverage.html) in a web browser.
+_**build/test/coverage.html**_ in a web browser.
 
 
 ## License
