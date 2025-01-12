@@ -16,16 +16,7 @@ _log\_ec_ library as described in the section titled
 Log messages are prefixed with a timestamp, logging level, source code filename
 and line number. An example of the log output is shown below:
 
-```bash
-   34425 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
-   34796 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
-   34996 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
-   36587 TRACE usbd_cdc.c:698: USB CDC hcdc->TxState = 0 (IDLE)
-   37054 DEBUG led.c:57: cdcTransmitResult = 0
-   38054 DEBUG led.c:57: cdcTransmitResult = 0
-   39054 DEBUG led.c:57: cdcTransmitResult = 0
-   40054 DEBUG led.c:57: cdcTransmitResult = 0
-```
+![Example of log output](./content/example-log-output.png)
 
 ## Usage
 To use the _log\_ec_ library in an existing project, either build and link the library as described in the section 
