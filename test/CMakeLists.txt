@@ -71,6 +71,8 @@ set(testList
     "given 2 subscribed callbacks when callback1 is unsubscribed only callback2 shall be invoked"
     "given callback1 is subscribed the subscription shall be overwritten when resubscribed"
     "given 2 subscribed callbacks an attempt to subscribe a third callback shall fail"
+    "given 2 subscribed callbacks when callback1 is unsubscribed callback3 subscription succeeds"
+    "given 2 subscribed callbacks when callback2 is unsubscribed callback3 subscription succeeds"
 )
 
 LIST(LENGTH testList testListLen)

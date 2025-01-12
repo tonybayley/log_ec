@@ -126,9 +126,11 @@ static int test_callback1_logInfo( void );
 static int test_callback1_logWarn( void );
 static int test_callback1_logDebug( void );
 static int test_twoCallbacksShallBeInvoked( void );
-static int test_unregister_callback1( void );
+static int test_unsubscribe_callback1( void );
 static int test_register_overwrite( void );
 static int test_thirdSubcriptionShallFail( void );
+static int test_unsubscribeCallback1_subscribeCallback3( void );
+static int test_unsubscribeCallback2_subscribeCallback3( void );
 
 
 /* Private variable definitions ---------------------------------------------*/
@@ -153,9 +155,11 @@ tTestItem m_testList[] = {
     { "when callback1 is subscribed with level LOG_INFO then log_warn shall invoke callback1", test_callback1_logWarn },
     { "when callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1", test_callback1_logDebug },
     { "when callback1 and callback2 are subscribed both callbacks shall be invoked", test_twoCallbacksShallBeInvoked },
-    { "given 2 subscribed callbacks when callback1 is unsubscribed only callback2 shall be invoked", test_unregister_callback1 },
+    { "given 2 subscribed callbacks when callback1 is unsubscribed only callback2 shall be invoked", test_unsubscribe_callback1 },
     { "given callback1 is subscribed the subscription shall be overwritten when resubscribed", test_register_overwrite },
-    { "given 2 subscribed callbacks an attempt to subscribe a third callback shall fail", test_thirdSubcriptionShallFail }
+    { "given 2 subscribed callbacks an attempt to subscribe a third callback shall fail", test_thirdSubcriptionShallFail },
+    { "given 2 subscribed callbacks when callback1 is unsubscribed callback3 subscription succeeds", test_unsubscribeCallback1_subscribeCallback3 },
+    { "given 2 subscribed callbacks when callback2 is unsubscribed callback3 subscription succeeds", test_unsubscribeCallback2_subscribeCallback3 }
 };
 
 /** Number of test cases */
@@ -178,6 +182,9 @@ tCallbackData m_callback1Data;
 
 /** callback2 data  */
 tCallbackData m_callback2Data;
+
+/** callback3 data  */
+tCallbackData m_callback3Data;
 
 /* Public function definitions ----------------------------------------------*/
 
@@ -309,7 +316,7 @@ static void clearLogMessage( void )
  */
 static void clearCallbackData( void )
 {
-    tCallbackData* callbackData[] = { &m_callback1Data, &m_callback2Data };
+    tCallbackData* callbackData[] = { &m_callback1Data, &m_callback2Data, &m_callback3Data };
     for( size_t i = 0U; i < sizeof( callbackData ) / sizeof( callbackData[0U] ); i++ )
     {
         memset( callbackData[i]->logMessage, 0, sizeof( callbackData[i]->logMessage ) );
@@ -405,7 +412,7 @@ static int test_log_info_messageFormat( void )
     const char* testValue = "\"Hello world!\"";
     char expectedLogMessage[80] = { '\0'};
 
-    //UUT
+    // UUT
     sprintf( expectedLogMessage, "   12345 INFO  test_runner.c:%u: testValue is \"Hello world!\"\n", NEXT_LINE );
     int msgLen = log_info( "testValue is %s\n", testValue );
 
@@ -641,7 +648,7 @@ static int test_setTimestamp_null( void )
 {
     char expectedLogMessage[80] = { '\0'};
 
-    //UUT
+    // UUT
     log_setTimestampFn( NULL );
     sprintf( expectedLogMessage, "       0 INFO  test_runner.c:%u: Message with zero timestamp\n", NEXT_LINE );
     int msgLen = log_info( "Message with zero timestamp\n" );
@@ -664,7 +671,7 @@ static int test_callback1_logInfo( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
 
-    //UUT
+    // UUT
     int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_info( "testValue is %s\n", testValue );
 
@@ -689,7 +696,7 @@ static int test_callback1_logWarn( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "testValue is -256\n" );
 
-    //UUT
+    // UUT
     int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_warn( "testValue is %d\n", testValue );
 
@@ -713,7 +720,7 @@ static int test_callback1_logDebug( void )
     int testValue = 1024;
     char expectedLogMessage[80] = { '\0'};
 
-    //UUT
+    // UUT
     int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_debug( "testValue is %d\n", testValue );
 
@@ -740,7 +747,7 @@ static int test_twoCallbacksShallBeInvoked( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
 
-    //UUT
+    // UUT
     int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     result |= log_registerCallbackFn( callbackFunction, &m_callback2Data, LOG_DEBUG ) ? 0 : 1;
     log_info( "testValue is %s\n", testValue );
@@ -770,7 +777,7 @@ static int test_twoCallbacksShallBeInvoked( void )
  *
  * @return 0 if test passes, 1 if test fails. 
  */
-static int test_unregister_callback1( void )
+static int test_unsubscribe_callback1( void )
 {
     /* given that callback1 and callback2 have been subscribed */
     int result = test_twoCallbacksShallBeInvoked();
@@ -782,7 +789,7 @@ static int test_unregister_callback1( void )
     char expectedLog2Message[80] = { '\0'};
     sprintf( expectedLog2Message, "testValue is \"Hello world!\"\n" );
 
-    //UUT
+    // UUT
     log_unregisterCallbackFn( callbackFunction, &m_callback1Data );
     log_info( "testValue is %s\n", testValue );
 
@@ -824,7 +831,7 @@ static int test_register_overwrite( void )
     char expectedLogMessage[80] = { '\0'};
     sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
 
-    //UUT
+    // UUT
     result |= log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_DEBUG ) ? 0 : 1;
     result |= log_registerCallbackFn( callbackFunction, &m_callback2Data, LOG_DEBUG ) ? 0 : 1;
 
@@ -841,7 +848,7 @@ static int test_register_overwrite( void )
 
 /**
  * @brief Given that callback1 and callback2 have been subscribed, an attempt to
- * register a third callback shall fail.
+ * subscribe a third callback shall fail.
  *
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -855,5 +862,71 @@ static int test_thirdSubcriptionShallFail( void )
 
     /* attempt to register a different callback shall fail */
     result |= log_registerCallbackFn( altCallbackFunction, &m_callback1Data, LOG_WARN ) ? 1 : 0;
+    return result;
+}
+
+/**
+ * @brief Given that callback1 and callback2 have been subscribed, when callback1
+ * has been unsubscribed, an attempt to subscribe callback3 shall succeed.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_unsubscribeCallback1_subscribeCallback3( void )
+{
+    /* given that callback1 and callback2 have been subscribed */
+    int result = test_twoCallbacksShallBeInvoked();
+
+    clearLogMessage();
+    clearCallbackData();
+
+    int testValue = 23;
+    char expectedLog3Message[80] = { '\0'};
+    sprintf( expectedLog3Message, "testValue is 23\n" );
+
+    // UUT
+    log_unregisterCallbackFn( callbackFunction, &m_callback1Data );
+    result |= log_registerCallbackFn( callbackFunction, &m_callback3Data, LOG_TRACE ) ? 0 : 1;
+    log_info( "testValue is %d\n", testValue );
+
+    /* callback3Data has been written by callback function */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLog3Message, m_callback3Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback3Data, (tCallbackData*)m_callback3Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback3Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 6 ), m_callback3Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback3Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback3Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief Given that callback1 and callback2 have been subscribed, when callback2
+ * has been unsubscribed, an attempt to subscribe callback3 shall succeed.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_unsubscribeCallback2_subscribeCallback3( void )
+{
+    /* given that callback1 and callback2 have been subscribed */
+    int result = test_twoCallbacksShallBeInvoked();
+
+    clearLogMessage();
+    clearCallbackData();
+
+    int testValue = 456;
+    char expectedLog3Message[80] = { '\0'};
+    sprintf( expectedLog3Message, "testValue is 456\n" );
+
+    // UUT
+    log_unregisterCallbackFn( callbackFunction, &m_callback2Data );
+    result |= log_registerCallbackFn( callbackFunction, &m_callback3Data, LOG_TRACE ) ? 0 : 1;
+    log_info( "testValue is %d\n", testValue );
+
+    /* callback3Data has been written by callback function */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLog3Message, m_callback3Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback3Data, (tCallbackData*)m_callback3Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback3Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 6 ), m_callback3Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback3Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback3Data.ev.file );
     return result;
 }
