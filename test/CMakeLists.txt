@@ -67,6 +67,10 @@ set(testList
     "when callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1"
     "when callback1 is subscribed with level LOG_INFO then log_warn shall invoke callback1"
     "when callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1"
+    "when callback1 and callback2 are subscribed both callbacks shall be invoked"
+    "given 2 subscribed callbacks when callback1 is unsubscribed only callback2 shall be invoked"
+    "given callback1 is subscribed the subscription shall be overwritten when resubscribed"
+    "given 2 subscribed callbacks an attempt to subscribe a third callback shall fail"
 )
 
 LIST(LENGTH testList testListLen)

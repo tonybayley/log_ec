@@ -222,10 +222,10 @@ int log_log( int level, const char* file, int line, const char* fmt, ... )
 
 #if LOG_USE_CALLBACKS
         /* invoke all registered logging callbacks */
-        for( size_t i = 0; ( i < LOG_MAX_CALLBACKS ) && ( NULL != logConfig.callbacks[i].cbFn ); i++ )
+        for( size_t i = 0; i < LOG_MAX_CALLBACKS; i++ )
         {
             tCallback* cb = &logConfig.callbacks[i];
-            if ( level >= cb->cbLogLevel )
+            if( (NULL != cb->cbFn ) && ( level >= cb->cbLogLevel ) )
             {
                 va_start( ev.ap, fmt );
                 cb->cbFn( &ev, cb->cbData );

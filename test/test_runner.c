@@ -105,7 +105,8 @@ static uint32_t getTimestamp( void );
 static bool setLockState( bool lock, void* lockData );
 static void clearLogMessage( void );
 static void clearCallbackData( void );
-static void callback1Function( tLog_event* ev, void* cbData );
+static void callbackFunction( tLog_event* ev, void* cbData );
+static void altCallbackFunction( tLog_event* ev, void* cbData );
 
 static int test_log_trace_messageFormat( void );
 static int test_log_debug_messageFormat( void );
@@ -124,6 +125,11 @@ static int test_setTimestamp_null( void );
 static int test_callback1_logInfo( void );
 static int test_callback1_logWarn( void );
 static int test_callback1_logDebug( void );
+static int test_twoCallbacksShallBeInvoked( void );
+static int test_unregister_callback1( void );
+static int test_register_overwrite( void );
+static int test_thirdSubcriptionShallFail( void );
+
 
 /* Private variable definitions ---------------------------------------------*/
 
@@ -145,7 +151,11 @@ tTestItem m_testList[] = {
     { "when timestamp function is NULL the timestamp value is 0", test_setTimestamp_null },
     { "when callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1", test_callback1_logInfo },
     { "when callback1 is subscribed with level LOG_INFO then log_warn shall invoke callback1", test_callback1_logWarn },
-    { "when callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1", test_callback1_logDebug }
+    { "when callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1", test_callback1_logDebug },
+    { "when callback1 and callback2 are subscribed both callbacks shall be invoked", test_twoCallbacksShallBeInvoked },
+    { "given 2 subscribed callbacks when callback1 is unsubscribed only callback2 shall be invoked", test_unregister_callback1 },
+    { "given callback1 is subscribed the subscription shall be overwritten when resubscribed", test_register_overwrite },
+    { "given 2 subscribed callbacks an attempt to subscribe a third callback shall fail", test_thirdSubcriptionShallFail }
 };
 
 /** Number of test cases */
@@ -163,8 +173,11 @@ size_t m_logMessageWriteIndex = 0U;
 /** Mock mutex state variable */
 bool m_logIsLocked = false;
 
-/** Data passed to callback1Function  */
+/** callback1 data  */
 tCallbackData m_callback1Data;
+
+/** callback2 data  */
+tCallbackData m_callback2Data;
 
 /* Public function definitions ----------------------------------------------*/
 
@@ -296,15 +309,19 @@ static void clearLogMessage( void )
  */
 static void clearCallbackData( void )
 {
-    memset( m_callback1Data.logMessage, 0, sizeof( m_callback1Data.logMessage ) );
-    m_callback1Data.data = NULL;
-    m_callback1Data.ev = (tLog_event) {
-        .file = NULL,
-        .fmt = NULL,
-        .level = 0,
-        .line = 0,
-        .time = 0U
-    };
+    tCallbackData* callbackData[] = { &m_callback1Data, &m_callback2Data };
+    for( size_t i = 0U; i < sizeof( callbackData ) / sizeof( callbackData[0U] ); i++ )
+    {
+        memset( callbackData[i]->logMessage, 0, sizeof( callbackData[i]->logMessage ) );
+        callbackData[i]->data = NULL;
+        callbackData[i]->ev = (tLog_event) {
+            .file = NULL,
+            .fmt = NULL,
+            .level = 0,
+            .line = 0,
+            .time = 0U
+        };
+    }
 }
 
 /**
@@ -313,7 +330,7 @@ static void clearCallbackData( void )
  * @param ev Pointer to logging event data.
  * @param cbData Pointer to the callback function's registered callback data object.
  */
-static void callback1Function( tLog_event* ev, void* cbData )
+static void callbackFunction( tLog_event* ev, void* cbData )
 {
     /* Get reference to the registered callback data object */
     tCallbackData* callbackData = cbData;
@@ -321,6 +338,19 @@ static void callback1Function( tLog_event* ev, void* cbData )
     callbackData->ev = *ev;
     callbackData->data = cbData;
     vsnprintf( callbackData->logMessage, sizeof( callbackData->logMessage ), ev->fmt, ev->ap );
+}
+
+/**
+ * @brief Alternative callback function used for tests of logging callbacks.
+ *
+ * @param ev Pointer to logging event data.
+ * @param cbData Pointer to the callback function's registered callback data object.
+ */
+static void altCallbackFunction( tLog_event* ev, void* cbData )
+{
+    (void) ev;
+    (void) cbData;
+    /* Do nothing */
 }
 
 /* Test cases ---------------------------------------------------------------*/
@@ -623,7 +653,7 @@ static int test_setTimestamp_null( void )
 }
 
 /**
- * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
+ * @brief When callback1 has been subscribed with level LOG_INFO, then a call
  * to log_info() shall invoke callback1.
  *
  * @return 0 if test passes, 1 if test fails. 
@@ -635,7 +665,7 @@ static int test_callback1_logInfo( void )
     sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
 
     //UUT
-    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_info( "testValue is %s\n", testValue );
 
     result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
@@ -648,8 +678,8 @@ static int test_callback1_logInfo( void )
 }
 
 /**
- * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
- * to log_Warn() shall invoke callback1.
+ * @brief When callback1 has been subscribed with level LOG_INFO, then a call
+ * to log_warn() shall invoke callback1.
  *
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -660,7 +690,7 @@ static int test_callback1_logWarn( void )
     sprintf( expectedLogMessage, "testValue is -256\n" );
 
     //UUT
-    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_warn( "testValue is %d\n", testValue );
 
     result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
@@ -673,8 +703,8 @@ static int test_callback1_logWarn( void )
 }
 
 /**
- * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
- * to log_Debug() shall not invoke callback1.
+ * @brief When callback1 has been subscribed with level LOG_INFO, then a call
+ * to log_debug() shall not invoke callback1.
  *
  * @return 0 if test passes, 1 if test fails. 
  */
@@ -684,7 +714,7 @@ static int test_callback1_logDebug( void )
     char expectedLogMessage[80] = { '\0'};
 
     //UUT
-    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
     log_debug( "testValue is %d\n", testValue );
 
     /* callback data has not been set */
@@ -694,5 +724,136 @@ static int test_callback1_logDebug( void )
     result |= TEST_ASSERT_EQUAL_INT( 0, m_callback1Data.ev.line );
     result |= TEST_ASSERT_EQUAL_INT( 0U, m_callback1Data.ev.time );
     result |= TEST_ASSERT_NULL( m_callback1Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief When callback1 and callback2 have been subscribed with levels 
+ * LOG_INFO and LOG_DEBUG respectively, then a call to log_info() shall invoke
+ * both callbacks.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_twoCallbacksShallBeInvoked( void )
+{
+    const char* testValue = "\"Hello world!\"";
+    char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
+
+    //UUT
+    int result = log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    result |= log_registerCallbackFn( callbackFunction, &m_callback2Data, LOG_DEBUG ) ? 0 : 1;
+    log_info( "testValue is %s\n", testValue );
+
+    /* callback1Data has been written by callback function */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback1Data, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 6 ), m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback1Data.ev.file );
+
+    /* callback2Data has been written by callback function */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback2Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback2Data, (tCallbackData*)m_callback2Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback2Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 14 ), m_callback2Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback2Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback2Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief Given that callback1 and callback2 have been subscribed with levels 
+ * LOG_INFO and LOG_DEBUG respectively, and then callback1 has been unregistered,
+ * then a call to log_info() shall invoke callback2 only.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_unregister_callback1( void )
+{
+    /* given that callback1 and callback2 have been subscribed */
+    int result = test_twoCallbacksShallBeInvoked();
+
+    clearLogMessage();
+    clearCallbackData();
+
+    const char* testValue = "\"Hello world!\"";
+    char expectedLog2Message[80] = { '\0'};
+    sprintf( expectedLog2Message, "testValue is \"Hello world!\"\n" );
+
+    //UUT
+    log_unregisterCallbackFn( callbackFunction, &m_callback1Data );
+    log_info( "testValue is %s\n", testValue );
+
+    /* callback1Data has not been set */
+    result |= TEST_ASSERT_EQUAL_STRING( "", m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT(  (tCallbackData*)NULL, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_TRACE, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( 0, m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( 0U, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_NULL( m_callback1Data.ev.file );
+
+    /* callback2Data has been written by callback function */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLog2Message, m_callback2Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback2Data, (tCallbackData*)m_callback2Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_INFO, m_callback2Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 14 ), m_callback2Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback2Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback2Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief Given that callback1 has been subscribed, subsequent re-subscription
+ * of the same callback function and data object shall overwrite the original
+ * subscription such that there is still space for subscription of callback2 to
+ * succeed.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_register_overwrite( void )
+{
+    /* Given that callback1 has been subscribed with logging level = LOG_INFO */
+    int result = test_callback1_logInfo();
+
+    clearLogMessage();
+    clearCallbackData();
+
+    const char* testValue = "\"Hello world!\"";
+    char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
+
+    //UUT
+    result |= log_registerCallbackFn( callbackFunction, &m_callback1Data, LOG_DEBUG ) ? 0 : 1;
+    result |= log_registerCallbackFn( callbackFunction, &m_callback2Data, LOG_DEBUG ) ? 0 : 1;
+
+    /* Verify that the registered logging level for callback 1 has been reduced from LOG_INFO to LOG_DEBUG */
+    log_debug( "testValue is %s\n", testValue );
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback1Data, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_DEBUG, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 4 ), m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback1Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief Given that callback1 and callback2 have been subscribed, an attempt to
+ * register a third callback shall fail.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_thirdSubcriptionShallFail( void )
+{
+    /* Given that 2 callbacks have been subscribed */
+    int result = test_twoCallbacksShallBeInvoked();
+
+    /* attempt to register one of the same callbacks with a different object shall fail */
+    result |= log_registerCallbackFn( callbackFunction, &result, LOG_INFO ) ? 1 : 0;
+
+    /* attempt to register a different callback shall fail */
+    result |= log_registerCallbackFn( altCallbackFunction, &m_callback1Data, LOG_WARN ) ? 1 : 0;
     return result;
 }
