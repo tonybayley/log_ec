@@ -40,20 +40,36 @@
 #define NEXT_LINE ( __LINE__ + 1 )          /* Line number of the next line */
 
 /**
- * @brief Compare a log message string with the expected message string.
- * 
- * @return 0 if the messages are identical, a non-zero value if the messages are different.
+ * @brief Compare two strings.
+ *
+ * @param EXPECTED_MESSAGE First of the strings to be compared.
+ * @param MESSAGE Second of the strings to be compared.
+ *
+ * @return 0 if the strings are identical, a non-zero value if they are different.
  */
 #define TEST_ASSERT_EQUAL_STRING( EXPECTED_MESSAGE, MESSAGE ) \
         strcmp( EXPECTED_MESSAGE, MESSAGE )
 
 /**
  * @brief Compare two integers.
- * 
- * @return 0 if the integers are identical, a non-zero value if the integers are different.
+ *
+ * @param EXPECTED_NUM First of the integers to be compared.
+ * @param NUM Second of the integers to be compared.
+ *
+ * @return 0 if the integers are identical, a non-zero value if they are different.
  */
 #define TEST_ASSERT_EQUAL_INT( EXPECTED_NUM, NUM ) \
         ( (int)( EXPECTED_NUM - NUM ) )
+
+/**
+ * @brief Test for NULL pointer.
+ *
+ * @param EXPR Expression to be tested for NULL.
+ *
+ * @return 0 if the expression is NULL, 1 if it is not NULL.
+ */
+#define TEST_ASSERT_NULL( EXPR ) \
+        ( NULL == ( EXPR ) ) ? 0 : 1
 
 /* Private type definitions -------------------------------------------------*/
 
@@ -106,7 +122,8 @@ static int test_log_setLevel_higherLevelIsPrinted( void );
 static int test_log_setLevel_lowerLevelIsNotPrinted( void );
 static int test_setTimestamp_null( void );
 static int test_callback1_logInfo( void );
-
+static int test_callback1_logWarn( void );
+static int test_callback1_logDebug( void );
 
 /* Private variable definitions ---------------------------------------------*/
 
@@ -125,8 +142,10 @@ tTestItem m_testList[] = {
     { "log message at level set by log_setLevel shall be printed", test_log_setLevel_equalLevelIsPrinted },
     { "log message at higher level than set by log_setLevel shall be printed", test_log_setLevel_higherLevelIsPrinted },
     { "log message at lower level than set by log_setLevel shall not be printed", test_log_setLevel_lowerLevelIsNotPrinted },
-    { "When timestamp function is NULL the timestamp value is 0", test_setTimestamp_null },
-    { "When callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1", test_callback1_logInfo }
+    { "when timestamp function is NULL the timestamp value is 0", test_setTimestamp_null },
+    { "when callback1 is subscribed with level LOG_INFO then log_info shall invoke callback1", test_callback1_logInfo },
+    { "when callback1 is subscribed with level LOG_INFO then log_warn shall invoke callback1", test_callback1_logWarn },
+    { "when callback1 is subscribed with level LOG_INFO then log_debug shall not invoke callback1", test_callback1_logDebug }
 };
 
 /** Number of test cases */
@@ -222,7 +241,7 @@ static void setExpectedTimestamp( uint32_t expectedTimestamp )
 
 /**
  * @brief Custom timestamp generator function that returns a known timestamp value when running tests.
- * 
+ *
  * @return timestamp value
  */
 static uint32_t getTimestamp( void )
@@ -233,16 +252,16 @@ static uint32_t getTimestamp( void )
 
 /**
  * @brief Log lock function.
- * 
+ *
  * This function mocks a mutex for unit testing. When the lock function is 
  * called with lock=true, a mutex is acquired to prevent any other threads or 
  * RTOS tasks from writing log messages. When the lock function is called with 
  * lock=false, the mutex is released to allow other threads to write log 
  * messages.
- * 
+ *
  * @param lock true to acquire the mutex that enables printing of log messages, false to release the mutex.
  * @param lockData Pointer to the mock mutex state variable.
- * 
+ *
  * @return true if the mutex was successfully acquired or released, or false on failure.
  */
 static bool setLockState( bool lock, void* lockData )
@@ -290,7 +309,7 @@ static void clearCallbackData( void )
 
 /**
  * @brief Callback function used for tests of logging callbacks.
- * 
+ *
  * @param ev Pointer to logging event data.
  * @param cbData Pointer to the callback function's registered callback data object.
  */
@@ -308,7 +327,7 @@ static void callback1Function( tLog_event* ev, void* cbData )
 
 /**
  * @brief Verify the format of log messages printed by log_trace() macro.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_trace_messageFormat( void )
@@ -328,7 +347,7 @@ static int test_log_trace_messageFormat( void )
 
 /**
  * @brief Verify the format of log messages printed by log_debug() macro.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_debug_messageFormat( void )
@@ -348,7 +367,7 @@ static int test_log_debug_messageFormat( void )
 
 /**
  * @brief Verify the format of log messages printed by log_info() macro.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_info_messageFormat( void )
@@ -368,7 +387,7 @@ static int test_log_info_messageFormat( void )
 
 /**
  * @brief Verify the format of log messages printed by log_warn() macro.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_warn_messageFormat( void )
@@ -388,7 +407,7 @@ static int test_log_warn_messageFormat( void )
 
 /**
  * @brief Verify the format of log messages printed by log_error() macro.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_error_messageFormat( void )
@@ -409,7 +428,7 @@ static int test_log_error_messageFormat( void )
 
 /**
  * @brief Verify the format of log messages printed by log_fatal() macro, with 10 digit timestamp.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
@@ -432,7 +451,7 @@ static int test_log_fatal_with10DigitTimestamp_messageFormat( void )
 /**
  * @brief Verify that writing of a log_info() message succeeds when the lock is
  *        free and can be acquired by the lock function.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_info_withLockFreeShallWriteLogMessage( void )
@@ -456,7 +475,7 @@ static int test_log_info_withLockFreeShallWriteLogMessage( void )
 /**
  * @brief Verify that writing of a log_info() message fails when the lock is
  *        taken and cannot be acquired by the lock function.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_info_withLockTakenShallNotWriteLogMessage( void )
@@ -478,7 +497,7 @@ static int test_log_info_withLockTakenShallNotWriteLogMessage( void )
 
 /**
  * @brief Verify that calling log_off() disables writing of log messages to the console.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_off( void )
@@ -498,7 +517,7 @@ static int test_log_off( void )
 
 /**
  * @brief Verify that calling log_on() enables writing of log messages to the console.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_on( void )
@@ -523,7 +542,7 @@ static int test_log_on( void )
 
 /**
  * @brief After calling log_setLevel( LOG_WARN ), calling log_warn() shall print log messages to the console.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_setLevel_equalLevelIsPrinted( void )
@@ -544,7 +563,7 @@ static int test_log_setLevel_equalLevelIsPrinted( void )
 
 /**
  * @brief After calling log_setLevel( LOG_WARN ), calling log_error() shall print log messages to the console.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_setLevel_higherLevelIsPrinted( void )
@@ -566,7 +585,7 @@ static int test_log_setLevel_higherLevelIsPrinted( void )
 
 /**
  * @brief After calling log_setLevel( LOG_WARN ), calling log_info() shall not print log messages to the console.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_log_setLevel_lowerLevelIsNotPrinted( void )
@@ -585,7 +604,7 @@ static int test_log_setLevel_lowerLevelIsNotPrinted( void )
 
 /**
  * @brief When the timestamp function is NULL, timestamp value is 0.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_setTimestamp_null( void )
@@ -606,17 +625,17 @@ static int test_setTimestamp_null( void )
 /**
  * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
  * to log_info() shall invoke callback1.
- * 
+ *
  * @return 0 if test passes, 1 if test fails. 
  */
 static int test_callback1_logInfo( void )
 {
     const char* testValue = "\"Hello world!\"";
     char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
 
     //UUT
     int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
-    sprintf( expectedLogMessage, "testValue is \"Hello world!\"\n" );
     log_info( "testValue is %s\n", testValue );
 
     result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
@@ -625,5 +644,55 @@ static int test_callback1_logInfo( void )
     result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 5 ), m_callback1Data.ev.line );
     result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback1Data.ev.time );
     result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback1Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
+ * to log_Warn() shall invoke callback1.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_callback1_logWarn( void )
+{
+    int testValue = -256;
+    char expectedLogMessage[80] = { '\0'};
+    sprintf( expectedLogMessage, "testValue is -256\n" );
+
+    //UUT
+    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    log_warn( "testValue is %d\n", testValue );
+
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT( &m_callback1Data, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_WARN, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( ( __LINE__ - 5 ), m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( DEFAULT_EXPECTED_TIMESTAMP, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_EQUAL_STRING( "test_runner.c", m_callback1Data.ev.file );
+    return result;
+}
+
+/**
+ * @brief When callback1 has been subscribed to with level LOG_INFO, then a call
+ * to log_Debug() shall not invoke callback1.
+ *
+ * @return 0 if test passes, 1 if test fails. 
+ */
+static int test_callback1_logDebug( void )
+{
+    int testValue = 1024;
+    char expectedLogMessage[80] = { '\0'};
+
+    //UUT
+    int result = log_registerCallbackFn( callback1Function, &m_callback1Data, LOG_INFO ) ? 0 : 1;
+    log_debug( "testValue is %d\n", testValue );
+
+    /* callback data has not been set */
+    result |= TEST_ASSERT_EQUAL_STRING( expectedLogMessage, m_callback1Data.logMessage );
+    result |= TEST_ASSERT_EQUAL_INT(  (tCallbackData*)NULL, (tCallbackData*)m_callback1Data.data );
+    result |= TEST_ASSERT_EQUAL_INT( LOG_TRACE, m_callback1Data.ev.level );
+    result |= TEST_ASSERT_EQUAL_INT( 0, m_callback1Data.ev.line );
+    result |= TEST_ASSERT_EQUAL_INT( 0U, m_callback1Data.ev.time );
+    result |= TEST_ASSERT_NULL( m_callback1Data.ev.file );
     return result;
 }
