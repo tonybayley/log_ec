@@ -31,7 +31,7 @@ target_sources(log_ec INTERFACE
 if(PROJECT_IS_TOP_LEVEL)
     # Override printf() and vprintf() with functions that write log messages to a test buffer, for unit tests
     target_compile_definitions(log_ec INTERFACE OVERRIDE_PRINTF)
-    target_include_directories(log_ec INTERFACE test)
+    target_include_directories(log_ec INTERFACE test)  # contains "console_printf.h" header file that declares the override functions
 
     # Build TestRunner for unit tests
     include(CTest)
